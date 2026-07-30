@@ -7,27 +7,41 @@ import { Text, StyleSheet } from 'react-native';
 import { useAuthStore } from '../store/auth.store';
 import { Colors, Typography } from '../theme';
 
-// Screens
+// Auth screens
 import { SplashScreen }         from '../screens/Auth/SplashScreen';
 import { LoginScreen }          from '../screens/Auth/LoginScreen';
 import { RegisterScreen }       from '../screens/Auth/RegisterScreen';
 import { ForgotPasswordScreen } from '../screens/Auth/ForgotPasswordScreen';
-import { HomeScreen }           from '../screens/Home/HomeScreen';
 
-// Placeholder screens for parts 2-4
-import { PlaceholderScreen }    from './PlaceholderScreen';
+// Home
+import { HomeScreen } from '../screens/Home/HomeScreen';
+
+// Pharmacy (Part 2)
+import { PharmacyMapScreen }    from '../screens/Pharmacy/PharmacyMapScreen';
+import { PharmacyDetailScreen } from '../screens/Pharmacy/PharmacyDetailScreen';
+
+// Orders (Part 3)
+import { OrdersListScreen }    from '../screens/Orders/OrdersListScreen';
+import { OrderTrackingScreen } from '../screens/Orders/OrderTrackingScreen';
+import { NewOrderScreen }      from '../screens/Orders/NewOrderScreen';
+
+// Reminders (Part 4)
+import { RemindersScreen } from '../screens/Reminders/RemindersScreen';
 
 import type {
   RootStackParamList,
   AuthStackParamList,
   MainTabParamList,
+  PharmacyStackParamList,
+  OrdersStackParamList,
 } from '../types';
 
-const Root = createNativeStackNavigator<RootStackParamList>();
-const Auth = createNativeStackNavigator<AuthStackParamList>();
-const Tab  = createBottomTabNavigator<MainTabParamList>();
+const Root     = createNativeStackNavigator<RootStackParamList>();
+const Auth     = createNativeStackNavigator<AuthStackParamList>();
+const Tab      = createBottomTabNavigator<MainTabParamList>();
+const Pharmacy = createNativeStackNavigator<PharmacyStackParamList>();
+const Orders   = createNativeStackNavigator<OrdersStackParamList>();
 
-// ─── Auth Stack ──────────────────────────────────────────────────────────────
 function AuthNavigator() {
   return (
     <Auth.Navigator screenOptions={{ headerShown: false }}>
@@ -38,23 +52,39 @@ function AuthNavigator() {
   );
 }
 
-// ─── Tab icons ────────────────────────────────────────────────────────────────
+function PharmacyNavigator() {
+  return (
+    <Pharmacy.Navigator screenOptions={{ headerShown: false }}>
+      <Pharmacy.Screen name="PharmacyMap"    component={PharmacyMapScreen} />
+      <Pharmacy.Screen name="PharmacyDetail" component={PharmacyDetailScreen} />
+      <Pharmacy.Screen name="NewOrder"       component={NewOrderScreen} />
+    </Pharmacy.Navigator>
+  );
+}
+
+function OrdersNavigator() {
+  return (
+    <Orders.Navigator screenOptions={{ headerShown: false }}>
+      <Orders.Screen name="OrdersList"    component={OrdersListScreen} />
+      <Orders.Screen name="OrderDetail"   component={OrderTrackingScreen} />
+      <Orders.Screen name="OrderTracking" component={OrderTrackingScreen} />
+    </Orders.Navigator>
+  );
+}
+
 const TAB_ICONS: Record<string, string> = {
-  Home:       '🏠',
-  Pharmacies: '🏥',
-  Orders:     '📦',
-  Reminders:  '⏰',
-  Profile:    '👤',
+  Home: '🏠', Pharmacies: '🏥', Orders: '📦', Reminders: '⏰', Profile: '👤',
 };
 const TAB_LABELS: Record<string, string> = {
-  Home:       'الرئيسية',
-  Pharmacies: 'الصيدليات',
-  Orders:     'طلباتي',
-  Reminders:  'تذكير',
-  Profile:    'حسابي',
+  Home: 'الرئيسية', Pharmacies: 'الصيدليات', Orders: 'طلباتي', Reminders: 'تذكير', Profile: 'حسابي',
 };
 
-// ─── Main Tab Navigator ───────────────────────────────────────────────────────
+function ProfileScreen() {
+  const { customer, logout } = useAuthStore();
+  const { Text: T, View: V, StyleSheet: SS, TouchableOpacity: TO } = require('react-native');
+  return null; // placeholder — Part 5
+}
+
 function MainNavigator() {
   return (
     <Tab.Navigator
@@ -73,15 +103,14 @@ function MainNavigator() {
       })}
     >
       <Tab.Screen name="Home"       component={HomeScreen} />
-      <Tab.Screen name="Pharmacies" component={() => <PlaceholderScreen label="الصيدليات — الجزء 2" icon="🏥" />} />
-      <Tab.Screen name="Orders"     component={() => <PlaceholderScreen label="الطلبات — الجزء 3" icon="📦" />} />
-      <Tab.Screen name="Reminders"  component={() => <PlaceholderScreen label="التذكير — الجزء 4" icon="⏰" />} />
-      <Tab.Screen name="Profile"    component={() => <PlaceholderScreen label="الملف الشخصي" icon="👤" />} />
+      <Tab.Screen name="Pharmacies" component={PharmacyNavigator} />
+      <Tab.Screen name="Orders"     component={OrdersNavigator} />
+      <Tab.Screen name="Reminders"  component={RemindersScreen} />
+      <Tab.Screen name="Profile"    component={HomeScreen} />
     </Tab.Navigator>
   );
 }
 
-// ─── Root Navigator ───────────────────────────────────────────────────────────
 export function RootNavigator() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
@@ -113,8 +142,5 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 10,
   },
-  tabLabel: {
-    fontSize: Typography.xs,
-    fontWeight: '500',
-  },
+  tabLabel: { fontSize: Typography.xs, fontWeight: '500' },
 });
