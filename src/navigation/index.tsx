@@ -28,6 +28,9 @@ import { NewOrderScreen }      from '../screens/Orders/NewOrderScreen';
 // Reminders (Part 4)
 import { RemindersScreen } from '../screens/Reminders/RemindersScreen';
 
+// Profile (Part 5)
+import { ProfileScreen } from '../screens/Profile/ProfileScreen';
+
 import type {
   RootStackParamList,
   AuthStackParamList,
@@ -79,12 +82,6 @@ const TAB_LABELS: Record<string, string> = {
   Home: 'الرئيسية', Pharmacies: 'الصيدليات', Orders: 'طلباتي', Reminders: 'تذكير', Profile: 'حسابي',
 };
 
-function ProfileScreen() {
-  const { customer, logout } = useAuthStore();
-  const { Text: T, View: V, StyleSheet: SS, TouchableOpacity: TO } = require('react-native');
-  return null; // placeholder — Part 5
-}
-
 function MainNavigator() {
   return (
     <Tab.Navigator
@@ -106,7 +103,7 @@ function MainNavigator() {
       <Tab.Screen name="Pharmacies" component={PharmacyNavigator} />
       <Tab.Screen name="Orders"     component={OrdersNavigator} />
       <Tab.Screen name="Reminders"  component={RemindersScreen} />
-      <Tab.Screen name="Profile"    component={HomeScreen} />
+      <Tab.Screen name="Profile"    component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
