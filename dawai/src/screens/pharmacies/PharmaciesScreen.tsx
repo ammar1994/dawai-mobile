@@ -133,5 +133,4 @@ const styles = StyleSheet.create({
   empty:     { alignItems: 'center', paddingTop: 80, gap: SPACING.md },
   emptyText: { color: COLORS.textMuted, fontSize: FONTS.size.md },
 });
--e 
 export default PharmaciesScreen;
