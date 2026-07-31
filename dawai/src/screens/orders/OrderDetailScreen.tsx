@@ -179,5 +179,4 @@ const styles = StyleSheet.create({
   cancelBtn:    { borderWidth: 1.5, borderColor: COLORS.error, borderRadius: 14, padding: SPACING.md, alignItems: 'center', marginTop: SPACING.sm },
   cancelText:   { color: COLORS.error, fontWeight: '700', fontSize: FONTS.size.md },
 });
--e 
 export default OrderDetailScreen;
