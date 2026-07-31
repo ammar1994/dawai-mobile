@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Gradle startup script for UN*X
+#
+APP_NAME="Gradle"
+APP_BASE_NAME=$(basename "$0")
+DIRNAME=$(dirname "$0")
+APP_HOME=$(cd "$DIRNAME" && pwd)
+DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+JAVA_OPTS="${JAVA_OPTS:-}"
+GRADLE_OPTS="${GRADLE_OPTS:-}"
+
+# Use JAVA_HOME if set, otherwise try java
+if [ -n "$JAVA_HOME" ]; then
+    JAVACMD="$JAVA_HOME/bin/java"
+else
+    JAVACMD="java"
+fi
+
+# Download gradle wrapper jar if missing
+WRAPPER_JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+if [ ! -f "$WRAPPER_JAR" ]; then
+    echo "Downloading gradle-wrapper.jar..."
+    curl -sL "https://raw.githubusercontent.com/gradle/gradle/v8.6.0/gradle/wrapper/gradle-wrapper.jar" -o "$WRAPPER_JAR" 2>/dev/null || \
+    wget -q "https://raw.githubusercontent.com/gradle/gradle/v8.6.0/gradle/wrapper/gradle-wrapper.jar" -O "$WRAPPER_JAR"
+fi
+
+exec "$JAVACMD" \
+    $DEFAULT_JVM_OPTS \
+    $JAVA_OPTS \
+    $GRADLE_OPTS \
+    -classpath "$WRAPPER_JAR" \
+    org.gradle.wrapper.GradleWrapperMain \
+    "$@"
