@@ -56,4 +56,4 @@ dependencies {
     implementation("com.facebook.react:hermes-android")
 }
 
-apply from: file("../../node_modules/@react-native-community/netinfo/android/netinfo.gradle") { apply -> apply.apply() }
+// netinfo is auto-linked via autolinkLibrariesFromCommand() in settings.gradle

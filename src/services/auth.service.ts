@@ -15,7 +15,7 @@ interface AuthResponseData {
 export const authService = {
   async login(payload: LoginRequest): Promise<AuthResponseData> {
     const { data } = await api.post<ApiResponse<AuthResponseData>>(
-      '/customer/auth/login',
+      '/mobile/auth/login',
       payload,
     );
     _persistSession(data.data);
@@ -24,7 +24,7 @@ export const authService = {
 
   async register(payload: RegisterRequest): Promise<AuthResponseData> {
     const { data } = await api.post<ApiResponse<AuthResponseData>>(
-      '/customer/auth/register',
+      '/mobile/auth/register',
       payload,
     );
     _persistSession(data.data);
@@ -33,7 +33,7 @@ export const authService = {
 
   async logout(): Promise<void> {
     try {
-      await api.post('/customer/auth/logout');
+      await api.post('/mobile/auth/logout');
     } catch {
       // fail silently — clear local anyway
     } finally {
@@ -42,7 +42,7 @@ export const authService = {
   },
 
   async getMe(): Promise<Customer> {
-    const { data } = await api.get<ApiResponse<Customer>>('/customer/auth/me');
+    const { data } = await api.get<ApiResponse<Customer>>('/mobile/auth/me');
     return data.data;
   },
 
