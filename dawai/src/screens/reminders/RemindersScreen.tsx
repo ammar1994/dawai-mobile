@@ -90,7 +90,7 @@ export default function RemindersScreen({ navigation }: any) {
           keyExtractor={r => r.id}
           contentContainerStyle={{ paddingBottom: 100 }}
           renderItem={({ item }) => (
-            <Card style={[styles.card, !item.isActive && styles.cardInactive]}>
+            <Card style={[styles.card, !item.isActive ? styles.cardInactive : undefined] as any}>
               <View style={styles.cardRow}>
                 <View style={styles.cardLeft}>
                   <View style={styles.pillIcon}>
