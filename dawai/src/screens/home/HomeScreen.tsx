@@ -170,5 +170,5 @@ const styles = StyleSheet.create({
   orderNum:     { color: '#fff', fontSize: FONTS.size.md, fontWeight: '700' },
   orderBranch:  { color: COLORS.textMuted, fontSize: FONTS.size.xs, marginTop: 2 },
 });
--e 
+
 export default HomeScreen;
