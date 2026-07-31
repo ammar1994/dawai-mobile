@@ -198,5 +198,4 @@ const styles = StyleSheet.create({
   addItemText:     { color: COLORS.primary, fontSize: FONTS.size.md, fontWeight: '600' },
   submitBtn:       { marginTop: SPACING.md },
 });
--e 
 export default NewOrderScreen;
