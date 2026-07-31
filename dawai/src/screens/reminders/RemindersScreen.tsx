@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   card: { marginHorizontal: SPACING.md, marginBottom: SPACING.sm },
-  cardInactive: { opacity: 0.5 },
+  cardInactive: { opacity: 0.5 } as any,
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   pillIcon: {
