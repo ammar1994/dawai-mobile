@@ -31,7 +31,7 @@ jobs:
         run: |
           cp node_modules/react-native/template/android/gradle/wrapper/gradle-wrapper.jar \
              android/gradle/wrapper/gradle-wrapper.jar
-          ls -lh android/gradle/wrapper/gradle-wrapper.jar
+          echo "jar size: $(ls -lh android/gradle/wrapper/gradle-wrapper.jar | awk '{print $5}')"
 
       - name: Setup debug keystore
         run: |
@@ -44,16 +44,25 @@ jobs:
 
       - name: Build APK
         run: |
+          set -e
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace \
-            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m" \
-            2>&1 | tail -80
+          ./gradlew assembleDebug --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m"
+
+      - name: Verify APK exists
+        run: |
+          APK=$(find android/app/build/outputs/apk/debug -name "*.apk" 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            echo "❌ APK not found!"
+            exit 1
+          fi
+          echo "✅ APK found: $APK ($(ls -lh $APK | awk '{print $5}'))"
+          cp "$APK" DawaiApp-debug.apk
 
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: DawaiApp-debug
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: DawaiApp-debug.apk
           retention-days: 30
