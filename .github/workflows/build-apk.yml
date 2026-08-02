@@ -27,15 +27,6 @@ jobs:
       - name: Install Node dependencies
         run: npm install
 
-      - name: Verify plugin path
-        run: |
-          echo "Plugin path:"
-          ls -la node_modules/@react-native/gradle-plugin/
-          echo "Settings.gradle.kts:"
-          cat node_modules/@react-native/gradle-plugin/settings.gradle.kts
-          echo "build.gradle.kts first 10 lines:"
-          head -10 node_modules/@react-native/gradle-plugin/build.gradle.kts
-
       - name: Fix gradle-wrapper.jar
         run: |
           cp node_modules/react-native/template/android/gradle/wrapper/gradle-wrapper.jar \
@@ -52,18 +43,14 @@ jobs:
 
       - name: Build APK
         run: |
-          set -e
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --info \
-            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m" \
-            2>&1 | grep -E "includeBuild|plugin|FAILURE|BUILD|error|Cannot|Could not" | head -50
+          ./gradlew assembleDebug --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m"
 
       - name: Upload APK
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DawaiApp-debug
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
-          if-no-files-found: warn
