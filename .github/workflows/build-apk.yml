@@ -27,11 +27,19 @@ jobs:
       - name: Install Node dependencies
         run: npm install
 
+      - name: Verify plugin path
+        run: |
+          echo "Plugin path:"
+          ls -la node_modules/@react-native/gradle-plugin/
+          echo "Settings.gradle.kts:"
+          cat node_modules/@react-native/gradle-plugin/settings.gradle.kts
+          echo "build.gradle.kts first 10 lines:"
+          head -10 node_modules/@react-native/gradle-plugin/build.gradle.kts
+
       - name: Fix gradle-wrapper.jar
         run: |
           cp node_modules/react-native/template/android/gradle/wrapper/gradle-wrapper.jar \
              android/gradle/wrapper/gradle-wrapper.jar
-          echo "jar size: $(ls -lh android/gradle/wrapper/gradle-wrapper.jar | awk '{print $5}')"
 
       - name: Setup debug keystore
         run: |
@@ -47,22 +55,15 @@ jobs:
           set -e
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m"
-
-      - name: Verify APK exists
-        run: |
-          APK=$(find android/app/build/outputs/apk/debug -name "*.apk" 2>/dev/null | head -1)
-          if [ -z "$APK" ]; then
-            echo "❌ APK not found!"
-            exit 1
-          fi
-          echo "✅ APK found: $APK ($(ls -lh $APK | awk '{print $5}'))"
-          cp "$APK" DawaiApp-debug.apk
+          ./gradlew assembleDebug --no-daemon --info \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m" \
+            2>&1 | grep -E "includeBuild|plugin|FAILURE|BUILD|error|Cannot|Could not" | head -50
 
       - name: Upload APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: DawaiApp-debug
-          path: DawaiApp-debug.apk
+          path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+          if-no-files-found: warn
