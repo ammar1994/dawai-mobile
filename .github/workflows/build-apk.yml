@@ -27,14 +27,25 @@ jobs:
       - name: Install Node dependencies
         run: npm install
 
-      - name: Copy gradle-wrapper.jar from node_modules
+      - name: Fix gradle plugin settings (remove foojay resolver)
+        run: |
+          cat > node_modules/@react-native/gradle-plugin/settings.gradle.kts << 'SETTINGS'
+          pluginManagement {
+            repositories {
+              mavenCentral()
+              google()
+              gradlePluginPortal()
+            }
+          }
+          rootProject.name = "react-native-gradle-plugin"
+          SETTINGS
+          echo "✅ foojay plugin removed"
+          cat node_modules/@react-native/gradle-plugin/settings.gradle.kts
+
+      - name: Copy gradle files from node_modules
         run: |
           cp node_modules/react-native/template/android/gradle/wrapper/gradle-wrapper.jar \
              android/gradle/wrapper/gradle-wrapper.jar
-          echo "jar size: $(du -h android/gradle/wrapper/gradle-wrapper.jar | cut -f1)"
-
-      - name: Copy gradlew from node_modules
-        run: |
           cp node_modules/react-native/template/android/gradlew android/gradlew
           chmod +x android/gradlew
 
