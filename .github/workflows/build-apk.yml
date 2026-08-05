@@ -30,32 +30,20 @@ jobs:
       - name: Fix foojay plugin in gradle-plugin settings
         run: |
           python3 - << 'PY'
-          content = '''pluginManagement {
-            repositories {
-              mavenCentral()
-              google()
-              gradlePluginPortal()
-            }
-          }
-          rootProject.name = "react-native-gradle-plugin"
-          '''
+          content = 'pluginManagement {\n  repositories {\n    mavenCentral()\n    google()\n    gradlePluginPortal()\n  }\n}\nrootProject.name = "react-native-gradle-plugin"\n'
           with open('node_modules/@react-native/gradle-plugin/settings.gradle.kts', 'w') as f:
               f.write(content)
           print("Fixed settings.gradle.kts")
-          with open('node_modules/@react-native/gradle-plugin/settings.gradle.kts') as f:
-              print(f.read())
           PY
 
       - name: Pre-build React Native Gradle Plugin
         run: |
+          JAR="node_modules/react-native/template/android/gradle/wrapper/gradle-wrapper.jar"
+          cp "$JAR" node_modules/@react-native/gradle-plugin/gradle/wrapper/gradle-wrapper.jar
           cd node_modules/@react-native/gradle-plugin
           chmod +x gradlew
-          cp ../react-native/template/android/gradle/wrapper/gradle-wrapper.jar \
-             gradle/wrapper/gradle-wrapper.jar
-          ./gradlew jar --no-daemon 2>&1 | tail -5
-          echo "Plugin JARs:"
-          find build/libs -name "*.jar" 2>/dev/null
-          find build -name "*.jar" 2>/dev/null | head -10
+          ./gradlew jar --no-daemon -Dorg.gradle.jvmargs="-Xmx2g" 2>&1 | tail -5
+          echo "Plugin build result: $?"
 
       - name: Copy gradle files
         run: |
