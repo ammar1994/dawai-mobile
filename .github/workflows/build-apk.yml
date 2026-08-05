@@ -1,58 +1,56 @@
-name: Build Android APK
+name: Build DAWAI APK
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Node 18
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Install Node dependencies
-        run: npm install
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
 
-      - name: Fix foojay plugin in gradle-plugin settings
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK components
         run: |
-          python3 - << 'PY'
-          content = 'pluginManagement {\n  repositories {\n    mavenCentral()\n    google()\n    gradlePluginPortal()\n  }\n}\nrootProject.name = "react-native-gradle-plugin"\n'
-          with open('node_modules/@react-native/gradle-plugin/settings.gradle.kts', 'w') as f:
-              f.write(content)
-          print("Fixed settings.gradle.kts")
-          PY
+          sdkmanager \
+            "build-tools;34.0.0" \
+            "platforms;android-34" \
+            "ndk;26.1.10909125"
 
-      - name: Pre-build React Native Gradle Plugin
+      - name: Fix gradle-wrapper.jar
         run: |
           JAR="node_modules/react-native/template/android/gradle/wrapper/gradle-wrapper.jar"
+          cp "$JAR" android/gradle/wrapper/gradle-wrapper.jar
           cp "$JAR" node_modules/@react-native/gradle-plugin/gradle/wrapper/gradle-wrapper.jar
-          cd node_modules/@react-native/gradle-plugin
-          chmod +x gradlew
-          ./gradlew jar --no-daemon -Dorg.gradle.jvmargs="-Xmx2g" 2>&1 | tail -5
-          echo "Plugin build result: $?"
 
-      - name: Copy gradle files
+      - name: Copy vector-icons fonts
         run: |
-          cp node_modules/react-native/template/android/gradle/wrapper/gradle-wrapper.jar \
-             android/gradle/wrapper/gradle-wrapper.jar
-          cp node_modules/react-native/template/android/gradlew android/gradlew
-          chmod +x android/gradlew
+          mkdir -p android/app/src/main/assets/fonts
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
+             android/app/src/main/assets/fonts/ 2>/dev/null || true
 
-      - name: Setup debug keystore
+      - name: Generate debug keystore
         run: |
           keytool -genkeypair -v \
             -keystore android/app/debug.keystore \
@@ -61,12 +59,16 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+
       - name: Build Debug APK
+        working-directory: android
+        env:
+          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
         run: |
-          cd android
-          ./gradlew assembleDebug --no-daemon \
-            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=512m" \
-            -Dorg.gradle.daemon=false
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

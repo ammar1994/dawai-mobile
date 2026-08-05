@@ -1,20 +1,5 @@
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-    dependencies {
-        classpath("com.android.tools.build:gradle:8.3.2")
-        classpath files("../node_modules/@react-native/gradle-plugin/build/libs/react-native-gradle-plugin.jar")
-    }
-}
-
-apply plugin: "com.facebook.react.settings"
-
-extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-    ex.autolinkLibrariesFromCommand()
-}
-
 rootProject.name = 'DawaiApp'
+apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+applyNativeModulesSettingsGradle(settings)
 include ':app'
+includeBuild('../node_modules/@react-native/gradle-plugin')

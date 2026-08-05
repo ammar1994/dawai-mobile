@@ -1,20 +1,20 @@
 buildscript {
     ext {
         buildToolsVersion = "34.0.0"
-        minSdkVersion = 23
+        minSdkVersion = 24
         compileSdkVersion = 34
         targetSdkVersion = 34
         ndkVersion = "26.1.10909125"
-        kotlinVersion = "1.9.22"
+        kotlinVersion = "1.9.25"
     }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.3.2")
+        classpath("com.android.tools.build:gradle:8.5.0")
+        classpath("com.facebook.react:react-native-gradle-plugin:0.73.4")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-        // NOTE: react-native-gradle-plugin is loaded via includeBuild in settings.gradle
     }
 }
 
@@ -25,6 +25,5 @@ allprojects {
         google()
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
-        maven { url "$rootDir/../node_modules/jsc-android/dist" }
     }
 }
