@@ -1,8 +1,35 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
-import { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ─── Storage ──────────────────────────────────────────────────────────────────
-export const storage = new MMKV({ id: 'dawai-storage' });
+// ─── Storage wrapper (sync-compatible interface) ─────────────────────────────
+// AsyncStorage is async, so we cache tokens in memory for sync interceptors
+let _accessToken: string | null = null;
+let _refreshToken: string | null = null;
+
+export const storage = {
+  async init() {
+    _accessToken = await AsyncStorage.getItem('accessToken');
+    _refreshToken = await AsyncStorage.getItem('refreshToken');
+  },
+  getString(key: string): string | undefined {
+    if (key === 'accessToken') return _accessToken ?? undefined;
+    if (key === 'refreshToken') return _refreshToken ?? undefined;
+    return undefined;
+  },
+  set(key: string, value: string) {
+    if (key === 'accessToken') { _accessToken = value; AsyncStorage.setItem(key, value); }
+    else if (key === 'refreshToken') { _refreshToken = value; AsyncStorage.setItem(key, value); }
+    else AsyncStorage.setItem(key, value);
+  },
+  delete(key: string) {
+    if (key === 'accessToken') _accessToken = null;
+    if (key === 'refreshToken') _refreshToken = null;
+    AsyncStorage.removeItem(key);
+  },
+};
+
+// Init on load
+storage.init();
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 export const API_BASE_URL = 'https://pharmacy-saas-backend.onrender.com/api';
@@ -17,19 +44,17 @@ const api: AxiosInstance = axios.create({
   },
 });
 
-// ─── Request Interceptor — attach token ───────────────────────────────────────
+// ─── Request Interceptor ─────────────────────────────────────────────────────
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = storage.getString('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   error => Promise.reject(error),
 );
 
-// ─── Response Interceptor — handle 401 / token refresh ───────────────────────
+// ─── Response Interceptor ────────────────────────────────────────────────────
 api.interceptors.response.use(
   response => response,
   async (error: AxiosError) => {
@@ -37,25 +62,19 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
-
       try {
         const refreshToken = storage.getString('refreshToken');
         if (!refreshToken) throw new Error('No refresh token');
 
-        const { data } = await axios.post(`${API_BASE_URL}/mobile/auth/refresh`, {
-          refreshToken,
-        });
-
+        const { data } = await axios.post(`${API_BASE_URL}/mobile/auth/refresh`, { refreshToken });
         const newToken: string = data.data.accessToken;
         storage.set('accessToken', newToken);
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);
       } catch {
-        // Refresh failed — clear session
         storage.delete('accessToken');
         storage.delete('refreshToken');
         storage.delete('customer');
-        // Navigation handled by auth store
       }
     }
 
