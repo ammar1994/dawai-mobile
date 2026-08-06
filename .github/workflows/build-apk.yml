@@ -42,8 +42,7 @@ jobs:
             "cmake;3.22.1"
 
       - name: Create local.properties
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: Set NDK env
         run: |
@@ -77,25 +76,26 @@ jobs:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log || true
+          set +e
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
           
-          echo "======= ERRORS ======="
-          grep -E "FAILED|What went wrong|Caused by:|error:" /tmp/build.log | head -30
+          echo ""
+          echo "=========================================="
+          echo "WHAT WENT WRONG:"
+          echo "=========================================="
+          grep -A 10 "What went wrong" /tmp/build.log | head -40
           
-          echo "======= LAST 50 LINES ======="
-          tail -50 /tmp/build.log
+          echo ""
+          echo "=========================================="
+          echo "ALL ERRORS:"
+          echo "=========================================="
+          grep -E "^e:|error:|Error " /tmp/build.log | grep -v "deprecated\|WARNING\|warn" | head -20
           
-          # Fail if APK not produced
-          ls app/build/outputs/apk/debug/*.apk 2>/dev/null || exit 1
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: /tmp/build.log
+          exit $BUILD_EXIT
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: DawaiApp-debug
