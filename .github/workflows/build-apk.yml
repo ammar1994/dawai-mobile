@@ -1,82 +1,90 @@
-name: Build APK
+name: Build DAWAI APK
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 60
 
-      - name: Setup Java 17
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Node.js
+      - name: Set up Node 18
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '18'
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Setup Android SDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
 
-      - name: Install SDK packages
+      - name: Install SDK + NDK
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125"
-
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-
-      - name: Create debug keystore
-        run: |
-          keytool -genkeypair -v \
-            -keystore android/app/debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;26.1.10909125"
 
       - name: Copy vector-icons fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
-          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
-             android/app/src/main/assets/fonts/ 2>/dev/null || true
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
 
-      - name: Build APK
+      - name: Create debug keystore if missing
+        run: |
+          if [ ! -f android/app/debug.keystore ]; then
+            keytool -genkeypair -v -keystore android/app/debug.keystore \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+          else
+            echo "debug.keystore exists"
+          fi
+
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+
+      - name: Verify autolinking
+        run: |
+          echo "Node: $(node --version)"
+          node node_modules/@react-native-community/cli/build/bin.js config 2>/dev/null | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+android = [k for k,v in d.get('dependencies',{}).items() if v.get('platforms',{}).get('android')]
+print(f'Found {len(android)} android packages')
+for k in android: print(f'  {k}')
+          "
+
+      - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ]; then
+            echo "=== KEY ERRORS ==="
+            grep -E "Caused by:|error: |cannot find|No matching variant|does not exist" /tmp/build.log | head -30
+            exit $EXIT
+          fi
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
 
-      - name: Rename APK
-        run: |
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk DawaiApp.apk 2>/dev/null || \
-          cp android/app/build/outputs/apk/release/app-release.apk DawaiApp.apk
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: build-latest
-          name: "DawaiApp - Latest Build"
-          body: "APK build"
-          files: DawaiApp.apk
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: DawaiApp-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
