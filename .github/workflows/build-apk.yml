@@ -29,6 +29,19 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+
+      - name: Install SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125"
+
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+
       - name: Create debug keystore
         run: |
           keytool -genkeypair -v \
@@ -38,23 +51,32 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Build APK
+      - name: Copy vector-icons fonts
         run: |
-          cd android
+          mkdir -p android/app/src/main/assets/fonts
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
+             android/app/src/main/assets/fonts/ 2>/dev/null || true
+
+      - name: Build APK
+        working-directory: android
+        run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
+        env:
+          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
 
       - name: Rename APK
         run: |
-          cp android/app/build/outputs/apk/debug/app-release.apk DawaiApp-debug.apk
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk DawaiApp.apk 2>/dev/null || \
+          cp android/app/build/outputs/apk/release/app-release.apk DawaiApp.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-latest
           name: "DawaiApp - Latest Build"
-          body: "APK مع الأيقونة الرسمية الداكنة"
-          files: DawaiApp-debug.apk
+          body: "APK build"
+          files: DawaiApp.apk
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
