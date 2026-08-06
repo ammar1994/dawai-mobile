@@ -42,11 +42,11 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
 
       - name: Rename APK
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk DawaiApp-debug.apk
+          cp android/app/build/outputs/apk/debug/app-release.apk DawaiApp-debug.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
