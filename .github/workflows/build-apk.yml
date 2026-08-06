@@ -31,7 +31,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install SDK + NDK components
+      - name: Install SDK + NDK + CMake
         run: |
           sdkmanager \
             "build-tools;34.0.0" \
@@ -40,15 +40,16 @@ jobs:
             "platforms;android-35" \
             "ndk;26.1.10909125" \
             "cmake;3.22.1"
-          echo "NDK_PATH=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
-          echo "CMAKE_PATH=$ANDROID_SDK_ROOT/cmake/3.22.1/bin" >> $GITHUB_ENV
 
-      - name: Create local.properties with NDK path
+      - name: Create local.properties
         run: |
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "ndk.dir=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> android/local.properties
-          echo "cmake.dir=$ANDROID_SDK_ROOT/cmake/3.22.1" >> android/local.properties
           cat android/local.properties
+
+      - name: Set NDK env
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
+          echo "ANDROID_NDK=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
 
       - name: Fix gradle-wrapper.jar
         run: |
@@ -75,7 +76,6 @@ jobs:
         working-directory: android
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
-          ANDROID_NDK_HOME: ${{ env.NDK_PATH }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
