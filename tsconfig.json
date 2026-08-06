@@ -2,6 +2,7 @@
   "extends": "@react-native/typescript-config/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "ignoreDeprecations": "5.0",
     "paths": {
       "@screens/*": ["src/screens/*"],
       "@components/*": ["src/components/*"],
@@ -13,5 +14,6 @@
       "@types/*": ["src/types/*"],
       "@assets/*": ["src/assets/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "dawai", "android", "ios"]
 }

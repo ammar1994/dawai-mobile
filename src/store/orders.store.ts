@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { ordersService } from '../services/orders.service';
-import type { Order, CreateOrderRequest } from '../types';
+import { ordersService, CreateOrderPayload } from '../services/orders.service';
+import type { Order } from '../types';
 
 interface OrdersStore {
   orders: Order[];
@@ -10,7 +10,7 @@ interface OrdersStore {
 
   fetchOrders: () => Promise<void>;
   fetchOrder: (id: string) => Promise<void>;
-  createOrder: (payload: CreateOrderRequest) => Promise<Order>;
+  createOrder: (payload: CreateOrderPayload) => Promise<Order>;
   cancelOrder: (id: string) => Promise<void>;
   clearError: () => void;
 }
