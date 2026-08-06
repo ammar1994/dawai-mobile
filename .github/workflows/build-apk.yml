@@ -31,12 +31,24 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install SDK components
+      - name: Install SDK + NDK components
         run: |
           sdkmanager \
             "build-tools;34.0.0" \
+            "build-tools;35.0.0" \
             "platforms;android-34" \
-            "ndk;26.1.10909125"
+            "platforms;android-35" \
+            "ndk;26.1.10909125" \
+            "cmake;3.22.1"
+          echo "NDK_PATH=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
+          echo "CMAKE_PATH=$ANDROID_SDK_ROOT/cmake/3.22.1/bin" >> $GITHUB_ENV
+
+      - name: Create local.properties with NDK path
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          echo "ndk.dir=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> android/local.properties
+          echo "cmake.dir=$ANDROID_SDK_ROOT/cmake/3.22.1" >> android/local.properties
+          cat android/local.properties
 
       - name: Fix gradle-wrapper.jar
         run: |
@@ -59,24 +71,14 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-
       - name: Build Debug APK
         working-directory: android
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
+          ANDROID_NDK_HOME: ${{ env.NDK_PATH }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | grep -E "^>|error:|Error|FAILED|Caused by:|What went wrong|BUILD" | head -50
-
-      - name: Build Debug APK (actual)
-        working-directory: android
-        env:
-          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
