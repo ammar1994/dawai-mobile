@@ -20,7 +20,7 @@ let TriggerType: any = null;
 async function getNotifee() {
   if (!notifee) {
     try {
-      const mod = await import('@notifee/react-native');
+      const mod = require('@notifee/react-native');
       notifee             = mod.default;
       AndroidImportance   = mod.AndroidImportance;
       TriggerType         = mod.TriggerType;

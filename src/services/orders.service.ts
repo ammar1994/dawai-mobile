@@ -1,18 +1,26 @@
 import api from './api';
-import type { Order, CreateOrderRequest, ApiResponse } from '../types';
+import type { Order, ApiResponse } from '../types';
+
+export interface CreateOrderPayload {
+  pharmacyId: string;
+  notes?: string;
+  deliveryAddress?: string;
+  prescriptionImageUrl?: string;
+  items: {
+    medicineName: string;
+    quantity: number;
+    requiresPrescription: boolean;
+  }[];
+}
 
 export const ordersService = {
-  async createOrder(payload: CreateOrderRequest): Promise<Order> {
+  async createOrder(payload: CreateOrderPayload): Promise<Order> {
     const { data } = await api.post<ApiResponse<Order>>('/mobile/orders', {
       branchId:             payload.pharmacyId,
       notes:                payload.notes,
       deliveryAddress:      payload.deliveryAddress,
       prescriptionImageUrl: payload.prescriptionImageUrl,
-      items: payload.items.map(i => ({
-        medicineName:         i.medicineName ?? '',
-        quantity:             i.quantity,
-        requiresPrescription: i.requiresPrescription ?? false,
-      })),
+      items:                payload.items,
     });
     return data.data;
   },
