@@ -2,15 +2,59 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, RefreshControl,
-  Modal, Image,
+  Modal, Image, ActionSheetIOS, Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import {
+  launchCamera, launchImageLibrary,
+  type ImagePickerResponse, type Asset,
+} from 'react-native-image-picker';
 import { useAuthStore } from '../../store/auth.store';
 import { prescriptionsService, PrescriptionImage } from '../../services/prescriptions.service';
 import api from '../../services/api';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
 
 type ActiveTab = 'profile' | 'prescriptions';
+
+// ── Image Picker Helper ────────────────────────────────────────────
+async function pickImage(): Promise<Asset | null> {
+  return new Promise(resolve => {
+    const options = {
+      mediaType: 'photo' as const,
+      quality:   0.85 as const,
+      maxWidth:  1280,
+      maxHeight: 1280,
+    };
+
+    const handler = (response: ImagePickerResponse) => {
+      if (response.didCancel || response.errorCode) { resolve(null); return; }
+      const asset = response.assets?.[0] ?? null;
+      resolve(asset);
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ['إلغاء', 'التقاط صورة', 'اختيار من المعرض'], cancelButtonIndex: 0, title: 'رفع وصفة طبية' },
+        idx => {
+          if (idx === 1) launchCamera(options, handler);
+          else if (idx === 2) launchImageLibrary(options, handler);
+          else resolve(null);
+        },
+      );
+    } else {
+      // Android — Alert بخيارين
+      Alert.alert(
+        'رفع وصفة طبية',
+        'اختر مصدر الصورة',
+        [
+          { text: 'إلغاء', style: 'cancel', onPress: () => resolve(null) },
+          { text: '📷 الكاميرا',  onPress: () => launchCamera(options, handler) },
+          { text: '🖼️ المعرض',   onPress: () => launchImageLibrary(options, handler) },
+        ],
+      );
+    }
+  });
+}
 
 export function ProfileScreen() {
   const { customer, logout } = useAuthStore();
@@ -22,6 +66,7 @@ export function ProfileScreen() {
   const [presLoading,   setPresLoading]   = useState(false);
   const [uploadModal,   setUploadModal]   = useState(false);
   const [imageUrl,      setImageUrl]      = useState('');
+  const [imageUri,      setImageUri]      = useState<string | null>(null);
   const [imageNotes,    setImageNotes]    = useState('');
   const [uploading,     setUploading]     = useState(false);
   const [previewItem,   setPreviewItem]   = useState<PrescriptionImage | null>(null);
@@ -59,20 +104,37 @@ export function ProfileScreen() {
     }
   };
 
+  // ── فتح صفحة الرفع مع اختيار الصورة فوراً ────────────────────────
+  const handleOpenUpload = async () => {
+    setImageUrl('');
+    setImageUri(null);
+    setImageNotes('');
+    setUploadModal(true);
+  };
+
+  const handlePickImage = async () => {
+    const asset = await pickImage();
+    if (!asset) return;
+    setImageUri(asset.uri ?? null);
+    setImageUrl('');  // URI يتغلب على URL
+  };
+
   const handleUpload = async () => {
-    if (!imageUrl.trim()) {
-      Alert.alert('تنبيه', 'أدخل رابط صورة الوصفة');
+    const source = imageUri ?? imageUrl.trim();
+    if (!source) {
+      Alert.alert('تنبيه', 'اختر صورة أو أدخل رابطاً');
       return;
     }
     setUploading(true);
     try {
-      await prescriptionsService.upload(imageUrl.trim(), imageNotes.trim() || undefined);
+      await prescriptionsService.upload(source, imageNotes.trim() || undefined);
       setUploadModal(false);
       setImageUrl('');
+      setImageUri(null);
       setImageNotes('');
       await loadPrescriptions();
     } catch {
-      Alert.alert('خطأ', 'فشل الرفع، تأكد من الرابط');
+      Alert.alert('خطأ', 'فشل الرفع، حاول مرة أخرى');
     } finally {
       setUploading(false);
     }
@@ -205,7 +267,7 @@ export function ProfileScreen() {
       {activeTab === 'prescriptions' && (
         <>
           {/* Upload FAB */}
-          <TouchableOpacity style={styles.fab} onPress={() => setUploadModal(true)} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.fab} onPress={handleOpenUpload} activeOpacity={0.85}>
             <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.fabGradient}>
               <Text style={styles.fabIcon}>+ رفع وصفة</Text>
             </LinearGradient>
@@ -237,7 +299,7 @@ export function ProfileScreen() {
                     activeOpacity={0.85}
                   >
                     <View style={styles.presThumb}>
-                      {item.imageUrl.startsWith('http') ? (
+                      {item.imageUrl.startsWith('http') || item.imageUrl.startsWith('file') ? (
                         <Image source={{ uri: item.imageUrl }} style={styles.presImg} resizeMode="cover" />
                       ) : (
                         <Text style={{ fontSize: 32 }}>📄</Text>
@@ -249,6 +311,7 @@ export function ProfileScreen() {
                       </Text>
                       {item.notes && <Text style={styles.presNotes} numberOfLines={2}>{item.notes}</Text>}
                     </View>
+                    {/* RTL-safe: استخدام hitSlop بدون left/right ثابتة */}
                     <TouchableOpacity onPress={() => handleDelete(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                       <Text style={styles.deleteIcon}>🗑️</Text>
                     </TouchableOpacity>
@@ -265,18 +328,35 @@ export function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <Text style={styles.modalTitle}>رفع وصفة طبية</Text>
-            <Text style={styles.modalSubtitle}>أدخل رابط صورة الوصفة (URL)</Text>
 
-            <Text style={styles.fieldLabel}>رابط الصورة *</Text>
-            <TextInput
-              style={styles.input}
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              placeholder="https://..."
-              placeholderTextColor={Colors.textHint}
-              keyboardType="url"
-              autoCapitalize="none"
-            />
+            {/* زر اختيار الصورة */}
+            <TouchableOpacity style={styles.pickerBtn} onPress={handlePickImage} activeOpacity={0.85}>
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.pickerPreview} resizeMode="cover" />
+              ) : (
+                <View style={styles.pickerPlaceholder}>
+                  <Text style={styles.pickerIcon}>📷</Text>
+                  <Text style={styles.pickerText}>التقاط صورة / اختيار من المعرض</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* أو إدخال رابط */}
+            {!imageUri && (
+              <>
+                <Text style={styles.orDivider}>— أو أدخل رابط الصورة —</Text>
+                <Text style={styles.fieldLabel}>رابط الصورة (URL)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={imageUrl}
+                  onChangeText={setImageUrl}
+                  placeholder="https://..."
+                  placeholderTextColor={Colors.textHint}
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+              </>
+            )}
 
             <Text style={styles.fieldLabel}>ملاحظات (اختياري)</Text>
             <TextInput
@@ -301,7 +381,7 @@ export function ProfileScreen() {
               >
                 {uploading
                   ? <ActivityIndicator color={Colors.white} />
-                  : <Text style={styles.uploadConfirmText}>رفع</Text>}
+                  : <Text style={styles.uploadConfirmText}>رفع ⬆️</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -327,7 +407,7 @@ export function ProfileScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles — RTL-Safe (marginStart/End بدل Left/Right) ──────────────────────
 const styles = StyleSheet.create({
   container:   { flex: 1, backgroundColor: Colors.background },
   header:      { paddingTop: 60, paddingBottom: 24, alignItems: 'center' },
@@ -364,22 +444,31 @@ const styles = StyleSheet.create({
   emptyTitle:  { fontSize: Typography.md, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.sm },
   emptySub:    { fontSize: Typography.sm, color: Colors.textSecondary, textAlign: 'center', paddingHorizontal: Spacing.xl },
 
+  // RTL-safe end بدلاً من right
   fab:         { position: 'absolute', bottom: Spacing.xl, end: Spacing.lg, zIndex: 10, borderRadius: Radius.full, overflow: 'hidden', ...Shadow.lg },
   fabGradient: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   fabIcon:     { color: Colors.white, fontWeight: '700', fontSize: Typography.base },
 
   presCard:    { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.white, marginHorizontal: Spacing.base, marginBottom: Spacing.sm, borderRadius: Radius.md, padding: Spacing.md, ...Shadow.sm },
-  presThumb:   { width: 60, height: 60, borderRadius: Radius.sm, backgroundColor: Colors.borderLight, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginRight: Spacing.md },
+  presThumb:   { width: 60, height: 60, borderRadius: Radius.sm, backgroundColor: Colors.borderLight, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginEnd: Spacing.md },
   presImg:     { width: 60, height: 60 },
   presInfo:    { flex: 1 },
   presDate:    { fontSize: Typography.sm, fontWeight: '600', color: Colors.textPrimary, marginBottom: 4 },
   presNotes:   { fontSize: Typography.xs, color: Colors.textSecondary },
-  deleteIcon:  { fontSize: 20, paddingLeft: Spacing.sm },
+  // RTL-safe: paddingStart بدل paddingLeft
+  deleteIcon:  { fontSize: 20, paddingStart: Spacing.sm },
+
+  // Image Picker
+  pickerBtn:         { width: '100%', height: 140, borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.primary + '66', borderStyle: 'dashed', overflow: 'hidden', marginBottom: Spacing.sm },
+  pickerPreview:     { width: '100%', height: '100%' },
+  pickerPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xs },
+  pickerIcon:        { fontSize: 36 },
+  pickerText:        { fontSize: Typography.sm, color: Colors.primary, fontWeight: '600', textAlign: 'center' },
+  orDivider:         { textAlign: 'center', color: Colors.textHint, fontSize: Typography.xs, marginVertical: Spacing.xs },
 
   modalOverlay:    { flex: 1, backgroundColor: Colors.overlay, justifyContent: 'flex-end' },
-  modalSheet:      { backgroundColor: Colors.white, borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, padding: Spacing.xl, paddingBottom: 40 },
-  modalTitle:      { fontSize: Typography.lg, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.xs },
-  modalSubtitle:   { fontSize: Typography.sm, color: Colors.textSecondary, textAlign: 'center', marginBottom: Spacing.lg },
+  modalSheet:      { backgroundColor: Colors.white, borderTopStartRadius: Radius.xl, borderTopEndRadius: Radius.xl, padding: Spacing.xl, paddingBottom: 40 },
+  modalTitle:      { fontSize: Typography.lg, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.lg },
   modalActions:    { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.sm },
   cancelBtn:       { flex: 1, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, paddingVertical: Spacing.md, alignItems: 'center' },
   cancelBtnText:   { color: Colors.textSecondary, fontWeight: '600' },
@@ -387,6 +476,7 @@ const styles = StyleSheet.create({
   uploadConfirmText: { color: Colors.white, fontWeight: '700', fontSize: Typography.base },
 
   previewOverlay:  { flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
+  // RTL-safe: end بدل right
   previewClose:    { position: 'absolute', top: 52, end: Spacing.lg, zIndex: 10 },
   previewCloseText:{ color: '#fff', fontSize: Typography.xl, fontWeight: '700' },
   previewImage:    { width: '95%', height: '80%' },
