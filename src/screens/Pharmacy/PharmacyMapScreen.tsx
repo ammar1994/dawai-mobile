@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   stripe:       { width: 5 },
   cardBody:     { flex: 1, padding: Spacing.base },
   cardTop:      { flexDirection: 'row', alignItems: 'flex-start' },
-  iconWrap:     { width: 44, height: 44, borderRadius: Radius.md, backgroundColor: Colors.primaryGlow, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
+  iconWrap:     { width: 44, height: 44, borderRadius: Radius.md, backgroundColor: Colors.primaryGlow, alignItems: 'center', justifyContent: 'center', marginEnd: Spacing.sm },
   icon:         { fontSize: 22 },
   cardInfo:     { flex: 1 },
   cardRight:    { alignItems: 'flex-end', gap: 6 },
