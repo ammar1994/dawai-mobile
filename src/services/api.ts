@@ -28,8 +28,19 @@ export const storage = {
   },
 };
 
-// Init on load
-storage.init();
+// ─── Singleton init Promise ──────────────────────────────────────────────────
+// يضمن أن storage.init() تُنفَّذ مرة واحدة فقط وتُنتظر قبل أي طلب API
+let _storageReady: Promise<void> | null = null;
+
+export function getStorageReady(): Promise<void> {
+  if (!_storageReady) {
+    _storageReady = storage.init();
+  }
+  return _storageReady;
+}
+
+// بدء التهيئة فور تحميل الوحدة
+getStorageReady();
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 export const API_BASE_URL = 'https://pharmacy-saas-backend.onrender.com/api';
@@ -45,8 +56,10 @@ const api: AxiosInstance = axios.create({
 });
 
 // ─── Request Interceptor ─────────────────────────────────────────────────────
+// ينتظر storage.init() أولاً (Singleton) ثم يُضيف التوكن
 api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
+    await getStorageReady(); // ضمان اكتمال init قبل أي طلب
     const token = storage.getString('accessToken');
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
@@ -75,6 +88,15 @@ api.interceptors.response.use(
         storage.delete('accessToken');
         storage.delete('refreshToken');
         storage.delete('customer');
+
+        // ── طرد تلقائي: نُعلم الـ auth store ليُعيد للمستخدم شاشة الدخول ──
+        // نستخدم dynamic import لتجنب circular dependency
+        try {
+          const { useAuthStore } = await import('../store/auth.store');
+          useAuthStore.getState().logout();
+        } catch {
+          // إذا فشل الاستيراد — لا شيء، المستخدم سيُطرد عند أول navigation guard
+        }
       }
     }
 
