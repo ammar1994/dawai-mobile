@@ -20,22 +20,13 @@ jobs:
           node-version: '20'
 
       - name: Setup Java 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: temurin
 
       - name: Install Node deps
         run: npm install --legacy-peer-deps
-
-      - name: Verify gradle-plugin exists
-        run: |
-          PLUGIN_DIR="node_modules/@react-native/gradle-plugin"
-          if [ ! -d "$PLUGIN_DIR" ]; then
-            echo "❌ ERROR: $PLUGIN_DIR not found!"
-            exit 1
-          fi
-          echo "✅ Plugin found: $PLUGIN_DIR"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -48,8 +39,7 @@ jobs:
           sdkmanager \
             "platforms;android-35" \
             "build-tools;35.0.0" \
-            "ndk;27.1.12297006" \
-            "cmake;3.22.1"
+            "ndk;27.1.12297006"
 
       - name: Copy vector icon fonts
         run: |
@@ -74,29 +64,39 @@ jobs:
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
         run: |
+          set -o pipefail
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          EXIT=${PIPESTATUS[0]}
-          if [ $EXIT -ne 0 ]; then
-            echo "=== ERRORS FOUND ==="
-            grep -n "error:\|Error:\|FAILED\|Caused by:\|Could not\|what went wrong\|> Task" /tmp/build.log | tail -60 || true
-            echo "=== LAST 200 LINES ==="
-            tail -200 /tmp/build.log
-            exit $EXIT
+          BUILD_EXIT=${PIPESTATUS[0]}
+          if [ $BUILD_EXIT -ne 0 ]; then
+            echo ""
+            echo "==============================="
+            echo "❌ BUILD FAILED — ERROR SUMMARY"
+            echo "==============================="
+            grep -E "error:|Error:|FAILED|Caused by:|> Task|Could not|Exception|what went wrong" \
+              /tmp/build.log | grep -v "^$" | tail -80 || true
+            echo ""
+            echo "=== LAST 100 LINES ==="
+            tail -100 /tmp/build.log
+            exit $BUILD_EXIT
           fi
+          echo "✅ Build succeeded"
+
+      - name: Verify APK exists
+        run: |
+          APK=$(find android/app/build/outputs/apk -name "*.apk" 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            echo "❌ No APK found after build"
+            exit 1
+          fi
+          echo "✅ APK: $APK ($(du -sh $APK | cut -f1))"
+          cp "$APK" DawaiApp-debug.apk
 
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: DawaiApp-debug
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: DawaiApp-debug.apk
+          if-no-files-found: error
           retention-days: 30
-
-      - name: Upload build log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: /tmp/build.log
-          retention-days: 7
