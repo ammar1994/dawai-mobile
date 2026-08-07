@@ -78,13 +78,20 @@ export interface OrderItem {
 export interface Order {
   id: string;
   pharmacyId: string;
+  /** اسم الصيدلية — يأتي من الـ API كـ branch.name */
   pharmacyName: string;
+  branch?: {
+    id: string;
+    name: string;       // المصدر الأصلي من الباك إند
+    address?: string;
+  };
   customerId: string;
   items: OrderItem[];
   status: OrderStatus;
   totalAmount: number;
   notes?: string;
   prescriptionImageUrl?: string;
+  deliveryAddress?: string;
   createdAt: string;
   updatedAt: string;
   estimatedReadyAt?: string;
