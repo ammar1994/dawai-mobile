@@ -95,7 +95,17 @@ export function ProfileScreen() {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      await api.patch('/mobile/auth/profile', { firstName, lastName, phone });
+      const { data } = await api.patch<{ success: boolean; data: { firstName: string; lastName: string; phone: string; email: string; id: string; createdAt: string } }>(
+        '/mobile/auth/profile',
+        { firstName, lastName, phone },
+      );
+      // ── تحديث المتجر والـ storage بالبيانات الجديدة ──────────────
+      if (data?.data) {
+        const updated = { ...customer, ...data.data };
+        useAuthStore.setState({ customer: updated as any });
+        const { storage } = await import('../../services/api');
+        storage.set('customer', JSON.stringify(updated));
+      }
       Alert.alert('تم الحفظ ✅', 'تم تحديث بياناتك بنجاح');
     } catch (err: any) {
       Alert.alert('خطأ', err?.response?.data?.message ?? 'فشل التحديث');
