@@ -78,7 +78,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         >
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backIcon}>→</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>إنشاء حساب</Text>
         <Text style={styles.headerSub}>انضم إلى دوائي اليوم</Text>
