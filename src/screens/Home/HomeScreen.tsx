@@ -4,17 +4,23 @@ import {
   TouchableOpacity, StatusBar,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthStore } from '../../store/auth.store';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
+import type { RootStackParamList } from '../../types';
+
+type HomeNav = NativeStackNavigationProp<RootStackParamList>;
 
 export const HomeScreen: React.FC = () => {
-  const customer = useAuthStore(s => s.customer);
+  const customer  = useAuthStore(s => s.customer);
+  const navigation = useNavigation<HomeNav>();
 
   const quickActions = [
-    { icon: '🏥', label: 'أقرب صيدلية', color: '#FF4DB8' },
-    { icon: '📋', label: 'طلباتي',       color: '#E91E8C' },
-    { icon: '⏰', label: 'تذكير الدواء', color: '#C2156F' },
-    { icon: '📄', label: 'وصفاتي',       color: '#8B0A5A' },
+    { icon: '🏥', label: 'أقرب صيدلية', color: '#FF4DB8', screen: 'Pharmacy' as const },
+    { icon: '📋', label: 'طلباتي',       color: '#E91E8C', screen: 'Orders'   as const },
+    { icon: '⏰', label: 'تذكير الدواء', color: '#C2156F', screen: 'Reminders' as const },
+    { icon: '📄', label: 'وصفاتي',       color: '#8B0A5A', screen: 'Orders'   as const },
   ];
 
   return (
@@ -46,7 +52,8 @@ export const HomeScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>ماذا تحتاج اليوم؟</Text>
         <View style={styles.grid}>
           {quickActions.map(a => (
-            <TouchableOpacity key={a.label} style={styles.actionCard} activeOpacity={0.8}>
+            <TouchableOpacity key={a.label} style={styles.actionCard} activeOpacity={0.8}
+              onPress={() => navigation.navigate(a.screen)}>
               <LinearGradient
                 colors={[a.color + '22', a.color + '11']}
                 style={styles.actionGradient}
