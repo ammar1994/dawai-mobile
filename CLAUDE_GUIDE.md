@@ -106,6 +106,24 @@ dawai-mobile/
 
 ### المرحلة 5 — RTL + Image Picker ✅
 - **index.js:** `I18nManager.forceRTL(true)` قبل أي render
+- **ProfileScreen.tsx:** RTL-safe + Image Picker كامل
+- **NewOrderScreen.tsx:** RTL-safe + Image Picker للوصفة
+- **OrderTrackingScreen.tsx:** إصلاح 3 مخالفات RTL
+
+### المرحلة 6 — إصلاح العيوب الحرجة ✅ (2026-08-07)
+- **CI/NDK:** NDK 26 → 27.1.12297006 في build-apk.yml (سبب الفشل الرئيسي)
+- **HomeScreen.tsx:** وصفاتي → `screen: 'Profile'` (كانت Orders)
+- **prescriptions.service.ts:** multipart/form-data لصور الجهاز (file:// + content://)
+- **ProfileScreen.tsx:** تحديث auth store + storage بعد حفظ الملف الشخصي
+- **ForgotPasswordScreen + RegisterScreen:** سهم RTL ← → →
+- **PharmacyDetailScreen:** `left` → `start`، `marginRight` → `marginEnd`
+- **PharmacyMapScreen:** `marginRight` → `marginEnd`
+- **OrdersListScreen:** حذف `as any` — `order.branch?.name` مباشرة
+- **pharmacy.store.ts:** أُنشئ — Zustand store مع caching
+- **ErrorBoundary.tsx:** أُنشئ — يلتقط crash ويحمي التطبيق
+- **App.tsx:** يُغلّف RootNavigator بـ ErrorBoundary
+- **package.json:** geolocation ^3.2.1 → ^3.4.0
+- **index.js:** `I18nManager.forceRTL(true)` قبل أي render
 - **ProfileScreen.tsx:** RTL-safe + Image Picker كامل (كاميرا/معرض/URL fallback)
 - **NewOrderScreen.tsx:** RTL-safe + Image Picker للوصفة عند وجود Rx item
 - **OrderTrackingScreen.tsx:** إصلاح 3 مخالفات RTL
@@ -113,6 +131,8 @@ dawai-mobile/
 ---
 
 ## 🔴 العيوب القائمة (يجب إصلاحها بالترتيب)
+
+> **آخر تحديث 2026-08-07:** عيوب #1–#7 + #NDK تم إصلاحها. pharmacy.store.ts و ErrorBoundary.tsx أُنشئا. راجع git log للتفاصيل.
 
 ### عيب #1 — CRITICAL: وصفاتي في HomeScreen تذهب للطلبات بدلاً من الملف الشخصي
 **الملف:** `src/screens/Home/HomeScreen.tsx` السطر ~21
@@ -284,11 +304,11 @@ interface XStore {
 ## 🔄 ترتيب العمل المقترح للنماذج القادمة
 
 ```
-[أولوية 1] إصلاح العيوب #1 و #2 و #3 (أعلاه) — حرجة للمستخدم
-[أولوية 2] pharmacy.store.ts + ErrorBoundary
-[أولوية 3] multipart upload في prescriptions.service.ts
-[أولوية 4] خط عربي (Cairo/Tajawal)
-[أولوية 5] Tests — Jest + React Native Testing Library
+[أولوية 1] ✅ تم — العيوب #1-#7 والـ NDK مُصلحة
+[أولوية 2] ✅ تم — pharmacy.store.ts + ErrorBoundary.tsx مُنشأتان
+[أولوية 3] ✅ تم — prescriptions.service.ts يدعم multipart
+[أولوية 4] خط عربي (Cairo/Tajawal) — لم يُنفَّذ بعد
+[أولوية 5] Tests — Jest + React Native Testing Library — لم يُنفَّذ بعد
 ```
 
 ---
