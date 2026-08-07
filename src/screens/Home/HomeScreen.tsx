@@ -20,7 +20,7 @@ export const HomeScreen: React.FC = () => {
     { icon: '🏥', label: 'أقرب صيدلية', color: '#FF4DB8', screen: 'Pharmacy' as const },
     { icon: '📋', label: 'طلباتي',       color: '#E91E8C', screen: 'Orders'   as const },
     { icon: '⏰', label: 'تذكير الدواء', color: '#C2156F', screen: 'Reminders' as const },
-    { icon: '📄', label: 'وصفاتي',       color: '#8B0A5A', screen: 'Orders'   as const },
+    { icon: '📄', label: 'وصفاتي',       color: '#8B0A5A', screen: 'Profile' as const },
   ];
 
   return (
