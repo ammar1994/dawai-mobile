@@ -32,12 +32,10 @@ jobs:
         run: |
           PLUGIN_DIR="node_modules/@react-native/gradle-plugin"
           if [ ! -d "$PLUGIN_DIR" ]; then
-            echo "❌ ERROR: $PLUGIN_DIR not found after npm install!"
-            ls node_modules/@react-native/ || true
+            echo "❌ ERROR: $PLUGIN_DIR not found!"
             exit 1
           fi
           echo "✅ Plugin found: $PLUGIN_DIR"
-          ls "$PLUGIN_DIR"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -47,12 +45,17 @@ jobs:
       - name: Install SDK packages
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
+          sdkmanager \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.1.12297006" \
+            "cmake;3.22.1"
 
       - name: Copy vector icon fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
-          cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
+             android/app/src/main/assets/fonts/ 2>/dev/null || true
 
       - name: Create keystore
         run: |
@@ -68,17 +71,17 @@ jobs:
 
       - name: Build Debug APK
         working-directory: android
+        env:
+          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --info 2>&1 | tee /tmp/build.log
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
           if [ $EXIT -ne 0 ]; then
             echo "=== LAST 300 LINES ==="
             tail -300 /tmp/build.log
             exit $EXIT
           fi
-        env:
-          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
 
       - name: Upload APK
         if: success()
