@@ -38,7 +38,7 @@ function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
       </View>
 
       <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
-      <Text style={styles.pharmacyName}>{(order as any).branch?.name ?? 'الصيدلية'}</Text>
+      <Text style={styles.pharmacyName}>{order.branch?.name ?? order.pharmacyName ?? 'الصيدلية'}</Text>
 
       <View style={styles.cardFooter}>
         <Text style={styles.itemCount}>{(order.items?.length ?? 0)} منتج</Text>
