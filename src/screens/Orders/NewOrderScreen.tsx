@@ -10,7 +10,7 @@ import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
 import type { PharmacyStackParamList, OrdersStackParamList } from '../../types';
 
 type Route = RouteProp<PharmacyStackParamList, 'NewOrder'>;
-type Nav   = NativeStackNavigationProp<OrdersStackParamList>;
+type Nav   = NativeStackNavigationProp<PharmacyStackParamList>;
 
 interface CartItem { medicineName: string; quantity: number; requiresPrescription: boolean }
 
