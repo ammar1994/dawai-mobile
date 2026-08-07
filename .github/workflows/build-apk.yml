@@ -78,8 +78,10 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
           if [ $EXIT -ne 0 ]; then
-            echo "=== LAST 300 LINES ==="
-            tail -300 /tmp/build.log
+            echo "=== ERRORS FOUND ==="
+            grep -n "error:\|Error:\|FAILED\|Caused by:\|Could not\|what went wrong\|> Task" /tmp/build.log | tail -60 || true
+            echo "=== LAST 200 LINES ==="
+            tail -200 /tmp/build.log
             exit $EXIT
           fi
 
