@@ -3,6 +3,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 import { RootNavigator } from './src/navigation';
 import { getStorageReady } from './src/services/api';
+import { ErrorBoundary } from './src/components/common/ErrorBoundary';
 
 // bootsplash — يُخفى بعد اكتمال init
 let BootSplash: any = null;
@@ -17,9 +18,11 @@ export default function App() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <RootNavigator />
-      <Toast />
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <RootNavigator />
+        <Toast />
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
