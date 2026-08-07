@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   container:   { flex: 1, backgroundColor: Colors.background },
   center:      { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background },
   header:      { paddingTop: 56, paddingBottom: 28, alignItems: 'center', paddingHorizontal: Spacing.lg },
-  backArrow:   { position: 'absolute', top: 56, left: Spacing.base },
+  backArrow:   { position: 'absolute', top: 56, start: Spacing.base },
   backArrowText: { color: Colors.white, fontSize: Typography.sm, opacity: 0.85 },
   logoCircle:  { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.primaryGlow, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md },
   logoEmoji:   { fontSize: 40 },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
 
 const infoStyles = StyleSheet.create({
   row:     { flexDirection: 'row', alignItems: 'flex-start', marginBottom: Spacing.base },
-  icon:    { fontSize: 20, marginRight: Spacing.md, marginTop: 2 },
+  icon:    { fontSize: 20, marginEnd: Spacing.md, marginTop: 2 },
   content: { flex: 1 },
   label:   { fontSize: Typography.xs, color: Colors.textHint, marginBottom: 2, fontWeight: '500' },
   value:   { fontSize: Typography.base, color: Colors.textPrimary, fontWeight: '500' },
