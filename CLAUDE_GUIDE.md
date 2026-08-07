@@ -308,3 +308,84 @@ interface XStore {
 ---
 
 **آخر تحديث:** 2026-08-07 | **كتبه:** Claude (بعد قراءة كاملة للمشروع)
+
+
+---
+
+## ⚠️ تحذيرات حرجة يجب حفظها
+
+### مجلد `dawai/` — كود ميت خطير
+```
+dawai/         ← Expo 51 + Navigation v6 + Zustand v4 + endpoints مختلفة
+               ← /api/v1/mobile (خاطئ)
+src/           ← React Native CLI 0.76.7 (الصحيح)
+               ← /api/mobile (صحيح)
+```
+**لا تستورد أي شيء من `dawai/` أو `admin/` أبداً.**
+**لا تقرأ package.json الموجود في `dawai/` — له إصدارات مختلفة تماماً.**
+
+---
+
+## 🏗 إعدادات Android (لا تغيّرها)
+
+| الإعداد | القيمة |
+|---------|--------|
+| minSdkVersion | 24 (Android 7+) |
+| targetSdkVersion | 35 |
+| compileSdkVersion | 35 |
+| buildToolsVersion | 35.0.0 |
+| NDK | 27.1.12297006 |
+| Kotlin | 2.0.21 |
+| Gradle Plugin | 8.7.3 |
+| Java | 17 |
+| New Architecture | ❌ مُعطَّل (newArchEnabled=false) |
+| Hermes | ✅ مفعّل |
+| ABI | arm64-v8a, armeabi-v7a, x86, x86_64 |
+
+---
+
+## 🔄 CI/CD — GitHub Actions
+
+**يُشغَّل تلقائياً عند كل push لـ `main`.**
+- كل commit يمكن أن يكسر البناء
+- افحص `.github/workflows/build-apk.yml` قبل أي تغيير في `android/`
+- Vector Icons تُنسخ يدوياً في CI: `node_modules/react-native-vector-icons/Fonts/*.ttf`
+
+**قواعد قبل الـ push:**
+```bash
+# تحقق من TypeScript
+npx tsc --noEmit
+
+# تحقق من Lint
+npx eslint . --ext .ts,.tsx
+```
+
+---
+
+## 📁 Alias Paths المتاحة (babel + tsconfig)
+
+```typescript
+@screens/*    → src/screens/*
+@components/* → src/components/*
+@navigation/* → src/navigation/*
+@services/*   → src/services/*
+@store/*      → src/store/*
+@theme/*      → src/theme/*
+@types/*      → src/types/*
+@assets/*     → src/assets/*
+// لاحظ: @hooks/* مُعرَّف لكن مجلد src/hooks/ غير موجود بعد
+```
+
+---
+
+## 🔗 Backend — معلومات الاتصال
+
+```
+Base URL: https://pharmacy-saas-backend.onrender.com/api
+Prefix:   /mobile  (كل endpoints تبدأ بـ /mobile/)
+
+مثال كامل: https://pharmacy-saas-backend.onrender.com/api/mobile/auth/login
+```
+
+**ملاحظة:** السيرفر على Render.com — قد يكون بطيئاً أول طلب (cold start ~30 ثانية).
+الـ timeout في `api.ts` مضبوط على 15000ms.
