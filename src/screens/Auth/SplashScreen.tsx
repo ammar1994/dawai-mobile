@@ -29,11 +29,14 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   const taglineOp    = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // 1. Load persisted session
-    loadSession();
+    let cancelled = false;
 
-    // 2. Play animations
-    Animated.sequence([
+    // 1. Load persisted session + play animations concurrently
+    //    نُشغّل الـ animation أولاً، ونُنتظر loadSession قبل التنقل
+    const init = async () => {
+      // بدء الـ animation بالتوازي مع loadSession
+      const animPromise = new Promise<void>(resolve => {
+        Animated.sequence([
       // Heart appears
       Animated.parallel([
         Animated.spring(heartScale, {
@@ -66,14 +69,25 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
         Animated.timing(taglineOp, { toValue: 1, duration: 400, useNativeDriver: true }),
         Animated.timing(taglineY, { toValue: 0, duration: 400, useNativeDriver: true }),
       ]),
-    ]).start();
+        ]).start(() => resolve());
+      });
 
-    // 3. Navigate after delay
-    const timer = setTimeout(() => {
-      navigation.replace(isAuthenticated ? 'Main' : 'Auth');
-    }, 2600);
+      // انتظر الاثنين: الـ animation + تحميل الجلسة
+      await Promise.all([
+        animPromise,
+        loadSession(),
+      ]);
 
-    return () => clearTimeout(timer);
+      if (cancelled) return;
+
+      // الآن isAuthenticated مُحدَّثة بشكل صحيح من الـ store
+      const auth = useAuthStore.getState().isAuthenticated;
+      navigation.replace(auth ? 'Main' : 'Auth');
+    };
+
+    init();
+
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
