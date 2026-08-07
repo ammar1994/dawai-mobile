@@ -23,7 +23,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
     setError('');
     setLoading(true);
     try {
-      await api.post('/customer/auth/forgot-password', { email: email.trim() });
+      await api.post('/mobile/auth/forgot-password', { email: email.trim() });
       setSent(true);
     } catch (e: any) {
       setError(e?.response?.data?.message ?? 'حدث خطأ، حاول مجدداً');
