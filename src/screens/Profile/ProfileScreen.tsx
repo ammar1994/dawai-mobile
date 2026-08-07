@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   emptyTitle:  { fontSize: Typography.md, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.sm },
   emptySub:    { fontSize: Typography.sm, color: Colors.textSecondary, textAlign: 'center', paddingHorizontal: Spacing.xl },
 
-  fab:         { position: 'absolute', bottom: Spacing.xl, right: Spacing.lg, zIndex: 10, borderRadius: Radius.full, overflow: 'hidden', ...Shadow.lg },
+  fab:         { position: 'absolute', bottom: Spacing.xl, end: Spacing.lg, zIndex: 10, borderRadius: Radius.full, overflow: 'hidden', ...Shadow.lg },
   fabGradient: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   fabIcon:     { color: Colors.white, fontWeight: '700', fontSize: Typography.base },
 
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
   uploadConfirmText: { color: Colors.white, fontWeight: '700', fontSize: Typography.base },
 
   previewOverlay:  { flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
-  previewClose:    { position: 'absolute', top: 52, right: Spacing.lg, zIndex: 10 },
+  previewClose:    { position: 'absolute', top: 52, end: Spacing.lg, zIndex: 10 },
   previewCloseText:{ color: '#fff', fontSize: Typography.xl, fontWeight: '700' },
   previewImage:    { width: '95%', height: '80%' },
 });
