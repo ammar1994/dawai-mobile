@@ -31,62 +31,39 @@ export const SplashScreen: React.FC<Props> = ({ navigation }) => {
   useEffect(() => {
     let cancelled = false;
 
-    // 1. Load persisted session + play animations concurrently
-    //    نُشغّل الـ animation أولاً، ونُنتظر loadSession قبل التنقل
     const init = async () => {
-      // بدء الـ animation بالتوازي مع loadSession
+      // 1. نُشغّل animation + loadSession بالتوازي
       const animPromise = new Promise<void>(resolve => {
         Animated.sequence([
-      // Heart appears
-      Animated.parallel([
-        Animated.spring(heartScale, {
-          toValue: 1,
-          tension: 60,
-          friction: 7,
-          useNativeDriver: true,
-        }),
-        Animated.timing(heartOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]),
-      // Heartbeat pulse
-      Animated.sequence([
-        Animated.timing(heartScale, { toValue: 1.1, duration: 150, useNativeDriver: true }),
-        Animated.timing(heartScale, { toValue: 1.0, duration: 150, useNativeDriver: true }),
-        Animated.timing(heartScale, { toValue: 1.05, duration: 100, useNativeDriver: true }),
-        Animated.timing(heartScale, { toValue: 1.0, duration: 100, useNativeDriver: true }),
-      ]),
-      // Logo text
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      // Tagline
-      Animated.parallel([
-        Animated.timing(taglineOp, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.timing(taglineY, { toValue: 0, duration: 400, useNativeDriver: true }),
-      ]),
+          Animated.parallel([
+            Animated.spring(heartScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true }),
+            Animated.timing(heartOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+          ]),
+          Animated.sequence([
+            Animated.timing(heartScale, { toValue: 1.1,  duration: 150, useNativeDriver: true }),
+            Animated.timing(heartScale, { toValue: 1.0,  duration: 150, useNativeDriver: true }),
+            Animated.timing(heartScale, { toValue: 1.05, duration: 100, useNativeDriver: true }),
+            Animated.timing(heartScale, { toValue: 1.0,  duration: 100, useNativeDriver: true }),
+          ]),
+          Animated.timing(logoOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.parallel([
+            Animated.timing(taglineOp, { toValue: 1, duration: 400, useNativeDriver: true }),
+            Animated.timing(taglineY,  { toValue: 0, duration: 400, useNativeDriver: true }),
+          ]),
         ]).start(() => resolve());
       });
 
-      // انتظر الاثنين: الـ animation + تحميل الجلسة
-      await Promise.all([
-        animPromise,
-        loadSession(),
-      ]);
+      // 2. نُنتظر الاثنين: Animation + loadSession
+      await Promise.all([animPromise, loadSession()]);
 
       if (cancelled) return;
 
-      // الآن isAuthenticated مُحدَّثة بشكل صحيح من الـ store
-      const auth = useAuthStore.getState().isAuthenticated;
-      navigation.replace(auth ? 'Main' : 'Auth');
+      // 3. نقرأ isAuthenticated بعد اكتمال loadSession (لا race condition)
+      const isAuth = useAuthStore.getState().isAuthenticated;
+      navigation.replace(isAuth ? 'Main' : 'Auth');
     };
 
     init();
-
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
