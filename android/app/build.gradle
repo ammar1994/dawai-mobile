@@ -8,7 +8,6 @@ react {
 
 android {
     ndkVersion rootProject.ext.ndkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.dawai.pharmacy"
@@ -63,6 +62,6 @@ android {
 dependencies {
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
-    // react-native-bootsplash يحتاج SplashScreen API
+    // react-native-bootsplash — SplashScreen API
     implementation("androidx.core:core-splashscreen:1.0.1")
 }
