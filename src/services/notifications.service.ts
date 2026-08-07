@@ -16,6 +16,7 @@ import { remindersService } from './reminders.service';
 let notifee: any = null;
 let AndroidImportance: any = null;
 let TriggerType: any = null;
+let RepeatFrequency: any = null;
 
 async function getNotifee() {
   if (!notifee) {
@@ -24,6 +25,7 @@ async function getNotifee() {
       notifee             = mod.default;
       AndroidImportance   = mod.AndroidImportance;
       TriggerType         = mod.TriggerType;
+      RepeatFrequency     = mod.RepeatFrequency;
     } catch {
       console.warn('[Notifee] Package not linked — local notifications disabled');
     }
@@ -81,7 +83,7 @@ export async function scheduleReminderNotification(opts: {
     {
       type:      TriggerType?.TIMESTAMP ?? 0,
       timestamp: trigger.getTime(),
-      repeatFrequency: 1, // daily = 1
+      repeatFrequency: RepeatFrequency?.DAILY ?? 1, // DAILY Enum — ليس أسبوعياً
     },
   );
 }
