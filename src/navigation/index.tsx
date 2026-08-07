@@ -4,7 +4,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, StyleSheet } from 'react-native';
 
-import { useAuthStore } from '../store/auth.store';
 import { Colors, Typography } from '../theme';
 
 // Auth screens
@@ -109,17 +108,16 @@ function MainNavigator() {
 }
 
 export function RootNavigator() {
-  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
-
   return (
     <NavigationContainer>
-      <Root.Navigator screenOptions={{ headerShown: false }}>
+      <Root.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName="Splash"
+      >
+        {/* كل الـ screens معرّفة دائماً — SplashScreen يتولى التوجيه */}
         <Root.Screen name="Splash" component={SplashScreen} />
-        {isAuthenticated ? (
-          <Root.Screen name="Main" component={MainNavigator} />
-        ) : (
-          <Root.Screen name="Auth" component={AuthNavigator} />
-        )}
+        <Root.Screen name="Auth"   component={AuthNavigator} />
+        <Root.Screen name="Main"   component={MainNavigator} />
       </Root.Navigator>
     </NavigationContainer>
   );
