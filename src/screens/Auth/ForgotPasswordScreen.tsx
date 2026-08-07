@@ -38,7 +38,7 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
       <LinearGradient colors={['#1A1A2E', '#2D1040']} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backIcon}>→</Text>
         </TouchableOpacity>
         <Text style={styles.title}>استعادة كلمة المرور</Text>
       </LinearGradient>
