@@ -4,18 +4,23 @@ import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
   ActionSheetIOS, Image,
 } from 'react-native';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   launchCamera, launchImageLibrary,
-  type ImagePickerResponse, type Asset,
+  type ImagePickerResponse, type Asset, type PhotoQuality,
 } from 'react-native-image-picker';
 import { useOrdersStore } from '../../store/orders.store';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
 import type { PharmacyStackParamList, OrdersStackParamList } from '../../types';
 
 type Route = RouteProp<PharmacyStackParamList, 'NewOrder'>;
-type Nav   = NativeStackNavigationProp<PharmacyStackParamList>;
+// CompositeNavigationProp: NewOrderScreen تعيش في PharmacyStack لكن تحتاج
+// navigate إلى OrderTracking الموجود في OrdersStack — نستخدم الـ parent RootNavigator
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<PharmacyStackParamList>,
+  NativeStackNavigationProp<OrdersStackParamList>
+>;
 
 interface CartItem { medicineName: string; quantity: number; requiresPrescription: boolean }
 
@@ -24,7 +29,7 @@ async function pickPrescriptionImage(): Promise<Asset | null> {
   return new Promise(resolve => {
     const options = {
       mediaType: 'photo' as const,
-      quality:   0.85 as const,
+      quality:   0.85 as PhotoQuality,   // PhotoQuality = 0 | 0.1 | ... | 1.0
       maxWidth:  1280,
       maxHeight: 1280,
     };
