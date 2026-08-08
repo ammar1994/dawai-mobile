@@ -7,11 +7,11 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import {
   launchCamera, launchImageLibrary,
-  type ImagePickerResponse, type Asset,
+  type ImagePickerResponse, type Asset, type PhotoQuality,
 } from 'react-native-image-picker';
 import { useAuthStore } from '../../store/auth.store';
 import { prescriptionsService, PrescriptionImage } from '../../services/prescriptions.service';
-import api from '../../services/api';
+import api, { storage } from '../../services/api';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
 
 type ActiveTab = 'profile' | 'prescriptions';
@@ -21,7 +21,7 @@ async function pickImage(): Promise<Asset | null> {
   return new Promise(resolve => {
     const options = {
       mediaType: 'photo' as const,
-      quality:   0.85 as const,
+      quality:   0.85 as PhotoQuality,
       maxWidth:  1280,
       maxHeight: 1280,
     };
@@ -103,7 +103,6 @@ export function ProfileScreen() {
       if (data?.data) {
         const updated = { ...customer, ...data.data };
         useAuthStore.setState({ customer: updated as any });
-        const { storage } = await import('../../services/api');
         storage.set('customer', JSON.stringify(updated));
       }
       Alert.alert('تم الحفظ ✅', 'تم تحديث بياناتك بنجاح');
