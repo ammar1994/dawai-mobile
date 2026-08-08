@@ -90,12 +90,14 @@ api.interceptors.response.use(
         storage.delete('customer');
 
         // ── طرد تلقائي: نُعلم الـ auth store ليُعيد للمستخدم شاشة الدخول ──
-        // نستخدم dynamic import لتجنب circular dependency
+        // require() بدلاً من await import() لتجنب circular dependency و TS1323
+        // يُحلّ lazily في وقت التشغيل بعد اكتمال تحميل الوحدات
         try {
-          const { useAuthStore } = await import('../store/auth.store');
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const { useAuthStore } = require('../store/auth.store') as typeof import('../store/auth.store');
           useAuthStore.getState().logout();
         } catch {
-          // إذا فشل الاستيراد — لا شيء، المستخدم سيُطرد عند أول navigation guard
+          // إذا فشل require — لا شيء، المستخدم سيُطرد عند أول navigation guard
         }
       }
     }
