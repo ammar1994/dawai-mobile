@@ -4,13 +4,19 @@ import {
   TouchableOpacity, StatusBar,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useAuthStore } from '../../store/auth.store';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
-import type { RootStackParamList } from '../../types';
+import type { RootStackParamList, MainTabParamList } from '../../types';
 
-type HomeNav = NativeStackNavigationProp<RootStackParamList>;
+// HomeScreen عيشة داخل MainNavigator (Tab) الذي نفسه داخل RootNavigator (Stack)
+// CompositeNavigationProp يدمج قدرات التنقل للمستويين
+type HomeNav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 export const HomeScreen: React.FC = () => {
   const customer  = useAuthStore(s => s.customer);
