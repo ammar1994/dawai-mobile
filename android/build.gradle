@@ -20,6 +20,10 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // مسار Maven المحلي لـ react-native — مطلوب للمكتبات القديمة التي تستخدم
+        // implementation 'com.facebook.react:react-native:+'
+        maven { url "$rootDir/../node_modules/react-native/android" }
+        maven { url "$rootDir/../node_modules/jsc-android/dist" }
         maven { url 'https://www.jitpack.io' }
     }
 }
