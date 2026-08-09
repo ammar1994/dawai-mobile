@@ -34,7 +34,7 @@ jobs:
         run: |
           grep "onAttached" \
             node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts
-          echo "✅ Patch applied — no '| undefined' in DirectEventHandler"
+          echo "✅ Patch applied"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -95,14 +95,14 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Find APK
-        if: success()
+      - name: Find and upload APK
         run: |
-          echo "=== build outputs ==="
-          find android/app/build/outputs -type f 2>/dev/null | head -30 || echo "No outputs dir"
-          APK=$(find android/app/build/outputs -name "*.apk" 2>/dev/null | head -1)
+          echo "=== Searching for APK ==="
+          find android -name "*.apk" 2>/dev/null
+          APK=$(find android -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
-            echo "❌ No APK found"
+            echo "❌ No APK found — listing build outputs:"
+            find android/app/build -type f 2>/dev/null | head -40
             exit 1
           fi
           SIZE=$(du -sh "$APK" | cut -f1)
@@ -110,7 +110,6 @@ jobs:
           cp "$APK" DawaiApp-debug.apk
 
       - name: Upload APK artifact
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: DawaiApp-debug-${{ github.run_number }}
@@ -119,7 +118,6 @@ jobs:
           retention-days: 30
 
       - name: Create GitHub Release
-        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
