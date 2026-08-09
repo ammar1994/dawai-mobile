@@ -101,15 +101,28 @@ jobs:
       - name: Find and copy APK
         if: success()
         run: |
-          echo "=== APK search ==="
-          find android/app/build/outputs -name "*.apk" 2>/dev/null || echo "No APK found"
-          APK=$(find android/app/build/outputs -name "*.apk" | head -1)
+          echo "=== Full build outputs tree ==="
+          find android/app/build -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null || true
+          echo ""
+          echo "=== outputs/ directory ==="
+          ls -la android/app/build/outputs/ 2>/dev/null || echo "No outputs dir"
+          ls -laR android/app/build/outputs/apk/ 2>/dev/null || echo "No apk dir"
+          echo ""
+          APK=$(find android/app/build -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
-            echo "❌ No APK found in build outputs"
-            exit 1
+            echo "⚠️ No APK — checking for AAB (bundle)"
+            AAB=$(find android/app/build -name "*.aab" 2>/dev/null | head -1)
+            if [ -n "$AAB" ]; then
+              echo "✅ Found AAB: $AAB — copying as DawaiApp.aab"
+              cp "$AAB" DawaiApp.aab
+            else
+              echo "❌ Neither APK nor AAB found"
+              exit 1
+            fi
+          else
+            echo "✅ Found APK: $APK ($(du -sh "$APK" | cut -f1))"
+            cp "$APK" DawaiApp.apk
           fi
-          echo "✅ APK: $APK ($(du -sh "$APK" | cut -f1))"
-          cp "$APK" DawaiApp.apk
 
       - name: Create GitHub Release
         if: success()
@@ -121,7 +134,10 @@ jobs:
             🤖 Automated build from commit ${{ github.sha }}
             
             **Changes:** ${{ github.event.head_commit.message }}
-          files: DawaiApp.apk
+          files: |
+            DawaiApp.apk
+            DawaiApp.aab
+          fail_on_unmatched_files: false
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
