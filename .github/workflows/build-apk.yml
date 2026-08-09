@@ -1,9 +1,12 @@
-name: Build DAWAI APK
+name: Build APK
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -11,22 +14,27 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - uses: actions/checkout@v4
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: temurin
+          distribution: 'temurin'
 
-      - name: Install Node deps
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
         run: npm install --legacy-peer-deps
+
+      - name: Verify patch applied
+        run: |
+          echo "=== react-native-screens fabric fix ==="
+          grep "onAttached" node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts
+          echo "✅ No '| undefined' in DirectEventHandler types"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -41,13 +49,10 @@ jobs:
             "build-tools;35.0.0" \
             "ndk;27.1.12297006"
 
-      - name: Copy vector icon fonts
-        run: |
-          mkdir -p android/app/src/main/assets/fonts
-          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
-             android/app/src/main/assets/fonts/ 2>/dev/null || true
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Create keystore
+      - name: Create debug keystore
         run: |
           keytool -genkeypair -v \
             -keystore android/app/debug.keystore \
@@ -56,34 +61,32 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+      - name: Copy vector-icons fonts
+        run: |
+          mkdir -p android/app/src/main/assets/fonts
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
+             android/app/src/main/assets/fonts/ 2>/dev/null || true
 
-      - name: Build Debug APK
-        id: build
+      - name: Build Release APK
         working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
-        run: |
-          set -o pipefail
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          echo "build_exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
 
       - name: Show build error (on failure)
         if: failure()
         run: |
           echo "==============================="
-          echo "❌ BUILD FAILED — FULL ERROR"
+          echo "❌ BUILD FAILED"
           echo "==============================="
           if [ -f /tmp/build.log ]; then
-            echo "=== Lines with errors ==="
-            grep -n "error\|Error\|FAILED\|Exception\|Caused by\|> Task\|Could not\|what went wrong" /tmp/build.log | tail -100
+            grep -n "error\|Error\|FAILED\|Exception\|Caused by\|Could not\|what went wrong" \
+              /tmp/build.log | tail -80
             echo ""
-            echo "=== Last 150 lines ==="
-            tail -150 /tmp/build.log
-          else
-            echo "No build.log found"
+            echo "=== Last 100 lines ==="
+            tail -100 /tmp/build.log
           fi
 
       - name: Upload build log
@@ -95,22 +98,28 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Verify and copy APK
+      - name: Find and copy APK
         if: success()
         run: |
-          APK=$(find android/app/build/outputs/apk -name "*.apk" 2>/dev/null | head -1)
+          APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
           if [ -z "$APK" ]; then
             echo "❌ No APK found"
             exit 1
           fi
           echo "✅ APK: $APK ($(du -sh $APK | cut -f1))"
-          cp "$APK" DawaiApp-debug.apk
+          cp "$APK" DawaiApp.apk
 
-      - name: Upload APK
+      - name: Create GitHub Release
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: softprops/action-gh-release@v2
         with:
-          name: DawaiApp-debug
-          path: DawaiApp-debug.apk
-          if-no-files-found: error
-          retention-days: 30
+          tag_name: build-${{ github.run_number }}
+          name: "DawaiApp Build #${{ github.run_number }}"
+          body: |
+            🤖 Automated build from commit ${{ github.sha }}
+            
+            **Changes:** ${{ github.event.head_commit.message }}
+          files: DawaiApp.apk
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
