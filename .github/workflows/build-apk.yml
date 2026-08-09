@@ -30,12 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Verify codegen patch
-        run: |
-          grep "onAttached" \
-            node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts
-          echo "✅ Patch applied"
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -67,24 +61,28 @@ jobs:
           cp node_modules/react-native-vector-icons/Fonts/*.ttf \
              android/app/src/main/assets/fonts/ 2>/dev/null || true
 
+      - name: Bundle JS manually
+        run: |
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+          echo "✅ JS bundle created: $(du -sh android/app/src/main/assets/index.android.bundle)"
+
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
+          EXIT=${PIPESTATUS[0]}
+          echo "--- last 100 lines ---"
+          tail -100 /tmp/build.log
+          exit $EXIT
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
-
-      - name: Show build error (on failure)
-        if: failure()
-        run: |
-          echo "=== BUILD FAILED ==="
-          if [ -f /tmp/build.log ]; then
-            grep -n "error\|Error\|FAILED\|Exception\|Caused by\|Could not" \
-              /tmp/build.log | tail -60
-            echo "--- last 80 lines ---"
-            tail -80 /tmp/build.log
-          fi
 
       - name: Upload build log
         if: always()
@@ -95,21 +93,18 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Find and upload APK
+      - name: Find and copy APK
         run: |
-          echo "=== Searching for APK ==="
-          find android -name "*.apk" 2>/dev/null
           APK=$(find android -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
-            echo "❌ No APK found — listing build outputs:"
-            find android/app/build -type f 2>/dev/null | head -40
+            echo "❌ No APK — build outputs:"
+            find android/app/build/outputs -type f 2>/dev/null | head -20
             exit 1
           fi
-          SIZE=$(du -sh "$APK" | cut -f1)
-          echo "✅ APK: $APK ($SIZE)"
+          echo "✅ APK: $APK ($(du -sh "$APK" | cut -f1))"
           cp "$APK" DawaiApp-debug.apk
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: DawaiApp-debug-${{ github.run_number }}
@@ -123,8 +118,8 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: "DawaiApp Debug Build #${{ github.run_number }}"
           body: |
-            🤖 Automated build from commit ${{ github.sha }}
-            **${{ github.event.head_commit.message }}**
+            🤖 Build from ${{ github.sha }}
+            ${{ github.event.head_commit.message }}
           files: DawaiApp-debug.apk
           fail_on_unmatched_files: false
           prerelease: true
