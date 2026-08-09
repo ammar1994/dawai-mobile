@@ -49,15 +49,5 @@
             </intent-filter>
         </activity>
 
-        <!-- Notifee -->
-        <receiver
-            android:name="io.invertase.notifee.NotifeeApiModule$NotifeeBootReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-            </intent-filter>
-        </receiver>
-
     </application>
 </manifest>
