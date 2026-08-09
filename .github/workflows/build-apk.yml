@@ -30,16 +30,23 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Patch react-native-screens
+      - name: Patch all react-native-screens fabric files
         run: |
-          FILE="node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts"
-          if [ -f "$FILE" ]; then
-            sed -i '/onAttached/d' "$FILE"
-            sed -i '/onDetached/d' "$FILE"
-            sed -i '/OnAttachedEvent/d' "$FILE"
-            sed -i '/OnDetachedEvent/d' "$FILE"
-            echo "Patched: removed onAttached/onDetached"
-            grep -n "onAttached\|onDetached" "$FILE" || echo "Clean"
+          FABRIC_DIR="node_modules/react-native-screens/src/fabric"
+          if [ -d "$FABRIC_DIR" ]; then
+            echo "Patching all files in $FABRIC_DIR"
+            for FILE in "$FABRIC_DIR"/*.ts; do
+              echo "--- $FILE ---"
+              # حذف كل prop بنوع undefined غير مدعوم في codegen
+              # المشكلة: أي union type يحتوي على | undefined بجانب string literal
+              # الحل: استبدال نوع CT.WithDefault<SomeUnion, 'default'> | undefined بإزالة | undefined
+              # وحذف أي سطر يحتوي على Readonly<{}> event handlers
+              sed -i '/OnAttachedEvent\|OnDetachedEvent\|onAttached\|onDetached/d' "$FILE"
+              # إصلاح: type?: CT.WithDefault<X, Y> يجب ألا يكون | undefined
+              sed -i "s/type?: CT\.WithDefault<\(.*\)>/type: CT.WithDefault<\1>/g" "$FILE"
+              echo "Patched: $FILE"
+            done
+            echo "All fabric files patched"
           fi
 
       - name: Setup Android SDK
@@ -78,7 +85,7 @@ jobs:
             --entry-file index.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
-          echo "Bundle size: $(du -sh android/app/src/main/assets/index.android.bundle)"
+          echo "Bundle: $(du -sh android/app/src/main/assets/index.android.bundle)"
 
       - name: Build Debug APK
         working-directory: android
