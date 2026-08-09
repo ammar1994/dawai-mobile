@@ -101,12 +101,14 @@ jobs:
       - name: Find and copy APK
         if: success()
         run: |
-          APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+          echo "=== APK search ==="
+          find android/app/build/outputs -name "*.apk" 2>/dev/null || echo "No APK found"
+          APK=$(find android/app/build/outputs -name "*.apk" | head -1)
           if [ -z "$APK" ]; then
-            echo "❌ No APK found"
+            echo "❌ No APK found in build outputs"
             exit 1
           fi
-          echo "✅ APK: $APK ($(du -sh $APK | cut -f1))"
+          echo "✅ APK: $APK ($(du -sh "$APK" | cut -f1))"
           cp "$APK" DawaiApp.apk
 
       - name: Create GitHub Release
