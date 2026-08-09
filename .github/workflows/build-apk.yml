@@ -30,11 +30,11 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Verify patch applied
+      - name: Verify codegen patch
         run: |
-          echo "=== react-native-screens fabric fix ==="
-          grep "onAttached" node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts
-          echo "✅ No '| undefined' in DirectEventHandler types"
+          grep "onAttached" \
+            node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts
+          echo "✅ Patch applied — no '| undefined' in DirectEventHandler"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -67,26 +67,23 @@ jobs:
           cp node_modules/react-native-vector-icons/Fonts/*.ttf \
              android/app/src/main/assets/fonts/ 2>/dev/null || true
 
-      - name: Build Release APK
+      - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
 
       - name: Show build error (on failure)
         if: failure()
         run: |
-          echo "==============================="
-          echo "❌ BUILD FAILED"
-          echo "==============================="
+          echo "=== BUILD FAILED ==="
           if [ -f /tmp/build.log ]; then
-            grep -n "error\|Error\|FAILED\|Exception\|Caused by\|Could not\|what went wrong" \
-              /tmp/build.log | tail -80
-            echo ""
-            echo "=== Last 100 lines ==="
-            tail -100 /tmp/build.log
+            grep -n "error\|Error\|FAILED\|Exception\|Caused by\|Could not" \
+              /tmp/build.log | tail -60
+            echo "--- last 80 lines ---"
+            tail -80 /tmp/build.log
           fi
 
       - name: Upload build log
@@ -98,45 +95,39 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Find and copy APK
+      - name: Find APK
         if: success()
         run: |
-          echo "=== Full build outputs tree ==="
-          find android/app/build -type f \( -name "*.apk" -o -name "*.aab" \) 2>/dev/null || true
-          echo ""
-          echo "=== outputs/ directory ==="
-          ls -la android/app/build/outputs/ 2>/dev/null || echo "No outputs dir"
-          ls -laR android/app/build/outputs/apk/ 2>/dev/null || echo "No apk dir"
-          echo ""
-          APK=$(find android/app/build -name "*.apk" 2>/dev/null | head -1)
+          echo "=== build outputs ==="
+          find android/app/build/outputs -type f 2>/dev/null | head -30 || echo "No outputs dir"
+          APK=$(find android/app/build/outputs -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
-            echo "⚠️ No APK — checking for AAB (bundle)"
-            AAB=$(find android/app/build -name "*.aab" 2>/dev/null | head -1)
-            if [ -n "$AAB" ]; then
-              echo "✅ Found AAB: $AAB — copying as DawaiApp.aab"
-              cp "$AAB" DawaiApp.aab
-            else
-              echo "❌ Neither APK nor AAB found"
-              exit 1
-            fi
-          else
-            echo "✅ Found APK: $APK ($(du -sh "$APK" | cut -f1))"
-            cp "$APK" DawaiApp.apk
+            echo "❌ No APK found"
+            exit 1
           fi
+          SIZE=$(du -sh "$APK" | cut -f1)
+          echo "✅ APK: $APK ($SIZE)"
+          cp "$APK" DawaiApp-debug.apk
+
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DawaiApp-debug-${{ github.run_number }}
+          path: DawaiApp-debug.apk
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Create GitHub Release
         if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: "DawaiApp Build #${{ github.run_number }}"
+          name: "DawaiApp Debug Build #${{ github.run_number }}"
           body: |
             🤖 Automated build from commit ${{ github.sha }}
-            
-            **Changes:** ${{ github.event.head_commit.message }}
-          files: |
-            DawaiApp.apk
-            DawaiApp.aab
+            **${{ github.event.head_commit.message }}**
+          files: DawaiApp-debug.apk
           fail_on_unmatched_files: false
           prerelease: true
         env:
