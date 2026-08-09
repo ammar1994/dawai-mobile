@@ -30,6 +30,17 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Fix react-native-screens codegen bug
+        run: |
+          FILE="node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts"
+          if [ -f "$FILE" ]; then
+            # حذف السطر الذي يحتوي على onAttached لأنه يسبب خطأ في codegen
+            sed -i '/onAttached/d' "$FILE"
+            echo "✅ Fixed: removed onAttached from $FILE"
+          else
+            echo "⚠️ File not found: $FILE"
+          fi
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -61,7 +72,7 @@ jobs:
           cp node_modules/react-native-vector-icons/Fonts/*.ttf \
              android/app/src/main/assets/fonts/ 2>/dev/null || true
 
-      - name: Bundle JS manually
+      - name: Bundle JS
         run: |
           mkdir -p android/app/src/main/assets
           npx react-native bundle \
@@ -70,7 +81,7 @@ jobs:
             --entry-file index.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
-          echo "✅ JS bundle created: $(du -sh android/app/src/main/assets/index.android.bundle)"
+          echo "✅ JS bundle: $(du -sh android/app/src/main/assets/index.android.bundle)"
 
       - name: Build Debug APK
         working-directory: android
@@ -78,8 +89,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
-          echo "--- last 100 lines ---"
-          tail -100 /tmp/build.log
+          tail -80 /tmp/build.log
           exit $EXIT
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
@@ -97,7 +107,7 @@ jobs:
         run: |
           APK=$(find android -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
-            echo "❌ No APK — build outputs:"
+            echo "❌ No APK found"
             find android/app/build/outputs -type f 2>/dev/null | head -20
             exit 1
           fi
