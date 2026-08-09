@@ -30,38 +30,32 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Fix react-native-screens codegen
+      - name: Patch react-native-screens fabric component
         run: |
           FILE="node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts"
           if [ -f "$FILE" ]; then
-            # حذف كل props التي نوعها undefined (onAttached, onDetached, وأي غيرها)
-            # الحل: إضافة @codegen-skip لتجاهل الملف كلياً
-            # أو: استبدال الـ props الإشكالية بنوع صحيح
             python3 - << 'PYEOF'
-import re
-
 filepath = "node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts"
 with open(filepath, 'r') as f:
     content = f.read()
 
-# حذف أي سطر يحتوي على prop بنوع undefined أو غير معروف
-# النمط: سطر يحتوي على onAttached أو onDetached أو أي on* event بنوع undefined
-lines = content.split('\n')
-filtered = []
-for line in lines:
-    # احذف السطور التي تحتوي على event handlers بنوع undefined
-    if re.search(r'on\w+\s*[?:].*undefined', line):
-        print(f"Removed: {line.strip()}")
-        continue
-    filtered.append(line)
+# إزالة تعريفات الأنواع الفارغة التي يرفضها codegen
+removals = [
+    "  onAttached?: CT.DirectEventHandler<OnAttachedEvent> | undefined;\n",
+    "  onDetached?: CT.DirectEventHandler<OnDetachedEvent> | undefined;\n",
+    "// eslint-disable-next-line @typescript-eslint/ban-types\ntype OnAttachedEvent = Readonly<{}>;\n",
+    "// eslint-disable-next-line @typescript-eslint/ban-types\ntype OnDetachedEvent = Readonly<{}>;\n",
+]
 
-new_content = '\n'.join(filtered)
+for r in removals:
+    if r in content:
+        content = content.replace(r, '')
+        print(f"Removed: {r.strip()[:60]}")
+
 with open(filepath, 'w') as f:
-    f.write(new_content)
-
-print("Done")
+    f.write(content)
+print("✅ Patch complete")
 PYEOF
-            echo "✅ Fixed ScreenStackHeaderConfigNativeComponent.ts"
           fi
 
       - name: Setup Android SDK
