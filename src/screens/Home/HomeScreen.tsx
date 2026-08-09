@@ -59,7 +59,7 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.grid}>
           {quickActions.map(a => (
             <TouchableOpacity key={a.label} style={styles.actionCard} activeOpacity={0.8}
-              onPress={() => navigation.navigate(a.screen)}>
+              onPress={() => navigation.navigate(a.screen as never)}>
               <LinearGradient
                 colors={[a.color + '22', a.color + '11']}
                 style={styles.actionGradient}
