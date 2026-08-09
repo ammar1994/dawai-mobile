@@ -30,15 +30,38 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Fix react-native-screens codegen bug
+      - name: Fix react-native-screens codegen
         run: |
           FILE="node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts"
           if [ -f "$FILE" ]; then
-            # حذف السطر الذي يحتوي على onAttached لأنه يسبب خطأ في codegen
-            sed -i '/onAttached/d' "$FILE"
-            echo "✅ Fixed: removed onAttached from $FILE"
-          else
-            echo "⚠️ File not found: $FILE"
+            # حذف كل props التي نوعها undefined (onAttached, onDetached, وأي غيرها)
+            # الحل: إضافة @codegen-skip لتجاهل الملف كلياً
+            # أو: استبدال الـ props الإشكالية بنوع صحيح
+            python3 - << 'PYEOF'
+import re
+
+filepath = "node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts"
+with open(filepath, 'r') as f:
+    content = f.read()
+
+# حذف أي سطر يحتوي على prop بنوع undefined أو غير معروف
+# النمط: سطر يحتوي على onAttached أو onDetached أو أي on* event بنوع undefined
+lines = content.split('\n')
+filtered = []
+for line in lines:
+    # احذف السطور التي تحتوي على event handlers بنوع undefined
+    if re.search(r'on\w+\s*[?:].*undefined', line):
+        print(f"Removed: {line.strip()}")
+        continue
+    filtered.append(line)
+
+new_content = '\n'.join(filtered)
+with open(filepath, 'w') as f:
+    f.write(new_content)
+
+print("Done")
+PYEOF
+            echo "✅ Fixed ScreenStackHeaderConfigNativeComponent.ts"
           fi
 
       - name: Setup Android SDK
@@ -81,7 +104,7 @@ jobs:
             --entry-file index.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
-          echo "✅ JS bundle: $(du -sh android/app/src/main/assets/index.android.bundle)"
+          echo "✅ Bundle: $(du -sh android/app/src/main/assets/index.android.bundle)"
 
       - name: Build Debug APK
         working-directory: android
@@ -107,7 +130,7 @@ jobs:
         run: |
           APK=$(find android -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
-            echo "❌ No APK found"
+            echo "❌ No APK"
             find android/app/build/outputs -type f 2>/dev/null | head -20
             exit 1
           fi
@@ -127,9 +150,7 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: "DawaiApp Debug Build #${{ github.run_number }}"
-          body: |
-            🤖 Build from ${{ github.sha }}
-            ${{ github.event.head_commit.message }}
+          body: "🤖 Build ${{ github.run_number }} from ${{ github.sha }}"
           files: DawaiApp-debug.apk
           fail_on_unmatched_files: false
           prerelease: true
