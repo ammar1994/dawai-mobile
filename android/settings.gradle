@@ -11,10 +11,16 @@ plugins {
     id("com.facebook.react.settings")
 }
 
-// RN 0.76 + CLI 15.x: autolinking via Gradle plugin
-// native_modules.gradle TIDAK ADA في CLI 12+ — diganti dengan autolinkLibrariesFromCommand()
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-    ex.autolinkLibrariesFromCommand()
+    // Explicitly set node executable path for CI environments
+    // where PATH may not include node during Gradle config phase
+    def nodeCmd = System.getenv("NODE") ?: "node"
+    ex.autolinkLibrariesFromCommand(
+        nodeCmd,
+        ["--no-warnings",
+         "./node_modules/@react-native-community/cli/build/bin.js",
+         "config"]
+    )
 }
 
 rootProject.name = 'DawaiApp'
