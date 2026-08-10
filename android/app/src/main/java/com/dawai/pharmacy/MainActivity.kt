@@ -10,7 +10,6 @@ import com.zoontek.rnbootsplash.RNBootSplash
 class MainActivity : ReactActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    // bootsplash يتولى إظهار شاشة البداية (بديل react-native-splash-screen)
     RNBootSplash.init(this, R.style.BootTheme)
     super.onCreate(savedInstanceState)
   }
