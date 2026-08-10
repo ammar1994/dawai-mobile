@@ -32,11 +32,17 @@ jobs:
 
       - name: Patch ScreenStackHeaderSubviewNativeComponent for Codegen
         run: |
-          echo "Replacing boolean | undefined in ScreenStackHeaderSubviewNativeComponent.ts"
-          sed -i 's/hidesSharedBackground?: boolean | undefined;/hidesSharedBackground?: boolean;/g' \
-            node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
-          echo "Targeted patch applied"
-          grep "hidesSharedBackground" node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
+          FILE="node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts"
+          echo "Before patch:"
+          cat "$FILE"
+          # Fix 1: remove | undefined from boolean prop
+          sed -i 's/hidesSharedBackground?: boolean | undefined;/hidesSharedBackground?: boolean;/g' "$FILE"
+          # Fix 2: type? with WithDefault is invalid - remove the ? to make it required
+          sed -i 's/  type?: CT\.WithDefault</  type: CT.WithDefault</g' "$FILE"
+          # Fix 3: synchronousShadowStateUpdatesEnabled same issue
+          sed -i 's/  synchronousShadowStateUpdatesEnabled?: CT\.WithDefault</  synchronousShadowStateUpdatesEnabled: CT.WithDefault</g' "$FILE"
+          echo "After patch:"
+          cat "$FILE"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -84,7 +90,6 @@ jobs:
             -Dkotlin.compiler.execution.strategy=in-process \
             2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
-          echo "=== ERRORS ==="
           grep -E "^e: |error:|Unresolved|does not exist|cannot find|Unknown" /tmp/build.log | head -30 || true
           tail -40 /tmp/build.log
           exit $EXIT
