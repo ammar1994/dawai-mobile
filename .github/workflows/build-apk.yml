@@ -28,7 +28,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps --force 2>&1 | tail -50
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
