@@ -78,3 +78,7 @@ dependencies {
     // react-native-bootsplash — SplashScreen API
     implementation("androidx.core:core-splashscreen:1.0.1")
 }
+
+// Autolinking hook — يربط مكتبات native_modules بالـ app module
+apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle");
+applyNativeModulesAppBuildGradle(project)
