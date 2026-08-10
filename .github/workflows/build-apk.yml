@@ -66,14 +66,16 @@ jobs:
             --entry-file index.js \
             --bundle-output android/app/src/main/assets/index.android.bundle \
             --assets-dest android/app/src/main/res
-          echo "Bundle: $(du -sh android/app/src/main/assets/index.android.bundle)"
+          echo "Bundle size: $(du -sh android/app/src/main/assets/index.android.bundle)"
 
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
+          # Pass NODE to Gradle so autolinkLibrariesFromCommand() can run react-native config
           ./gradlew assembleDebug --no-daemon \
             -Dkotlin.compiler.execution.strategy=in-process \
+            -PreactNativeArchitectures=arm64-v8a \
             2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
           grep -E "^e: |error:|Unresolved|does not exist|cannot find|Unknown" /tmp/build.log | head -30 || true
@@ -81,6 +83,8 @@ jobs:
           exit $EXIT
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
+          NODE: /usr/local/bin/node
+          NODE_PATH: /home/runner/work/dawai-mobile/dawai-mobile/node_modules
 
       - name: Upload build log
         if: always()
