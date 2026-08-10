@@ -74,11 +74,11 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
           if [ $EXIT -ne 0 ]; then
-            echo "=== LAST 100 LINES ==="
-            tail -100 /tmp/build.log
+            echo "=== LAST 300 LINES ==="
+            tail -300 /tmp/build.log
             exit $EXIT
           fi
         env:
