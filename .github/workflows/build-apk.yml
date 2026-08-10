@@ -5,9 +5,6 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,76 +14,90 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v5
-        with:
-          java-version: '17'
-          distribution: temurin
-
       - name: Install Node deps
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
-      - name: Verify key packages
+      - name: Fix gradle-plugin (add settings.gradle if missing)
         run: |
-          for pkg in react-native react-native-bootsplash react-native-gesture-handler react-native-screens @notifee/react-native react-native-vector-icons react-native-linear-gradient; do
-            [ -d "node_modules/$pkg" ] && echo "✅ $pkg" || { echo "❌ MISSING: $pkg"; exit 1; }
-          done
+          P="node_modules/@react-native/gradle-plugin"
+          ls "$P/" | head -5
+          [ -f "$P/settings.gradle" ] || [ -f "$P/settings.gradle.kts" ] || \
+            echo "rootProject.name = 'react-native-gradle-plugin'" > "$P/settings.gradle"
+          echo "Settings file: $(ls $P/settings* 2>/dev/null || echo 'created')"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
 
-      - name: Install SDK packages
+      - name: Install SDK + NDK
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
+          sdkmanager \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.1.12297006"
 
       - name: Copy vector-icons fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
-          cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
+             android/app/src/main/assets/fonts/ 2>/dev/null || true
 
       - name: Create keystore
         run: |
+          [ -f android/app/debug.keystore ] && exit 0
           keytool -genkeypair -v \
             -keystore android/app/debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Create local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Build Debug APK
+      - name: Build APK
         working-directory: android
-        run: |
-          chmod +x gradlew
-          set +e
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          EXIT=${PIPESTATUS[0]}
-          set -e
-          if [ $EXIT -ne 0 ]; then
-            echo ""
-            echo "========== BUILD FAILED - FULL ERROR =========="
-            grep -A 20 "FAILURE\|What went wrong\|Caused by\|error:" /tmp/build.log | head -150
-            echo "========== LAST 200 LINES =========="
-            tail -200 /tmp/build.log
-            exit $EXIT
-          fi
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
+        run: |
+          export PATH="$(dirname $(which node)):$PATH"
+          echo "Node: $(node --version) at $(which node)"
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
+          EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ]; then
+            echo "=== ERRORS ==="
+            grep -E "error:|FAILED|What went wrong|cannot find|does not exist|Caused by" \
+              /tmp/build.log | grep -v "^>" | head -50
+            echo "=== LAST 100 LINES ==="
+            tail -100 /tmp/build.log
+            exit $EXIT
+          fi
 
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DawaiApp-debug-${{ github.run_number }}
+          name: DawaiApp-debug
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      - name: Upload log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: /tmp/build.log
+          retention-days: 7
