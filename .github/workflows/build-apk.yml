@@ -1,79 +1,85 @@
 name: Build DAWAI APK
+
 on:
   workflow_dispatch:
   push:
     branches: [main]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { java-version: '17', distribution: temurin }
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
 
-      - name: Install deps
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Symlink node for Gradle subprocesses
+      - name: Make node available to Gradle subprocesses
         run: |
-          # Gradle spawns subprocesses that may not inherit PATH
-          # Symlinking ensures node/npm/npx always found at standard path
-          NODE_BIN=$(which node)
-          NPM_BIN=$(which npm)
-          NPX_BIN=$(which npx)
-          echo "node at: $NODE_BIN"
-          sudo ln -sf "$NODE_BIN" /usr/local/bin/node  || true
-          sudo ln -sf "$NPM_BIN"  /usr/local/bin/npm   || true
-          sudo ln -sf "$NPX_BIN"  /usr/local/bin/npx   || true
-          echo "Verify: $(node --version) | $(npx --version)"
-          # Test autolinking command works
-          echo "=== Testing react-native config ==="
-          node node_modules/.bin/react-native config 2>/dev/null | \
-            python3 -c "import sys,json; d=json.load(sys.stdin); print('Found', len(d.get('dependencies',{})), 'dependencies')" \
-            || echo "config command test failed"
-
-      - name: Fix gradle-plugin
-        run: |
-          P="node_modules/@react-native/gradle-plugin"
-          [ -f "$P/settings.gradle" ] || [ -f "$P/settings.gradle.kts" ] || \
-            echo "rootProject.name = 'react-native-gradle-plugin'" > "$P/settings.gradle"
+          NODE_DIR=$(dirname $(which node))
+          echo "$NODE_DIR" >> $GITHUB_PATH
+          sudo ln -sf "$(which node)" /usr/local/bin/node || true
+          sudo ln -sf "$(which npm)"  /usr/local/bin/npm  || true
+          sudo ln -sf "$(which npx)"  /usr/local/bin/npx  || true
+          echo "node: $(node --version), npm: $(npm --version)"
 
       - uses: android-actions/setup-android@v3
-        with: { accept-android-sdk-licenses: 'true' }
+        with:
+          accept-android-sdk-licenses: 'true'
 
-      - name: Install SDK + NDK
+      - name: Install Android SDK components
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
 
-      - name: Fonts + keystore + local.properties
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/**/*.gradle') }}
+          restore-keys: gradle-
+
+      - name: Setup keystore and local.properties
+        run: |
+          keytool -genkeypair -v \
+            -keystore android/app/debug.keystore \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" 2>/dev/null || true
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+
+      - name: Copy vector icon fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
           cp node_modules/react-native-vector-icons/Fonts/*.ttf \
              android/app/src/main/assets/fonts/ 2>/dev/null || true
-          [ -f android/app/debug.keystore ] || keytool -genkeypair -v \
-            -keystore android/app/debug.keystore -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US"
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Build APK
+      - name: Build Debug APK
         working-directory: android
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
+          ./gradlew assembleDebug --no-daemon --info 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
           if [ $EXIT -ne 0 ]; then
-            ERRS=$(grep -E "error:|What went wrong|Caused by:" /tmp/build.log | head -10 | tr '\n' ' | ')
-            echo "::error::$ERRS"
-            grep -E "error:|What went wrong|Caused by:|cannot find|does not exist" /tmp/build.log | head -25
-            tail -40 /tmp/build.log
+            echo "::error::Build failed. Key errors:"
+            grep -E "error:|Error|FAILURE|Caused by:|What went wrong" /tmp/build.log | \
+              grep -v "^[[:space:]]*at " | head -20
             exit 1
           fi
 
@@ -85,7 +91,7 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: Upload log on failure
+      - name: Upload build log on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
