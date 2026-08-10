@@ -30,24 +30,23 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Patch all react-native-screens fabric files
+      - name: Patch react-native-screens fabric props
         run: |
           FABRIC_DIR="node_modules/react-native-screens/src/fabric"
-          if [ -d "$FABRIC_DIR" ]; then
-            echo "Patching all files in $FABRIC_DIR"
-            for FILE in "$FABRIC_DIR"/*.ts; do
-              echo "--- $FILE ---"
-              # حذف كل prop بنوع undefined غير مدعوم في codegen
-              # المشكلة: أي union type يحتوي على | undefined بجانب string literal
-              # الحل: استبدال نوع CT.WithDefault<SomeUnion, 'default'> | undefined بإزالة | undefined
-              # وحذف أي سطر يحتوي على Readonly<{}> event handlers
-              sed -i '/OnAttachedEvent\|OnDetachedEvent\|onAttached\|onDetached/d' "$FILE"
-              # إصلاح: type?: CT.WithDefault<X, Y> يجب ألا يكون | undefined
-              sed -i "s/type?: CT\.WithDefault<\(.*\)>/type: CT.WithDefault<\1>/g" "$FILE"
-              echo "Patched: $FILE"
-            done
-            echo "All fabric files patched"
-          fi
+          echo "Files in fabric dir:"
+          ls "$FABRIC_DIR"
+          echo "Patching props with 'undefined' type..."
+          for FILE in "$FABRIC_DIR"/*.ts; do
+            # إزالة | undefined من props التي تسبب مشكلة في codegen
+            # النمط: propName?: SomeType | undefined => propName?: SomeType
+            sed -i 's/ | undefined;//g' "$FILE"
+            sed -i 's/ | undefined>/>/g' "$FILE"
+            # إزالة سطور DirectEventHandler مع Readonly<{}>
+            sed -i '/DirectEventHandler.*Readonly<{}>/d' "$FILE"
+            sed -i '/type On.*Event = Readonly<{}>/d' "$FILE"
+          done
+          echo "Patch complete. Checking remaining issues..."
+          grep -rn "undefined" "$FABRIC_DIR"/*.ts | grep -v "\/\/" | head -20 || echo "No issues found"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
