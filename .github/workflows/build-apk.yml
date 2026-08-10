@@ -30,23 +30,49 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Patch react-native-screens fabric props
+      - name: Patch react-native-screens fabric
         run: |
-          FABRIC_DIR="node_modules/react-native-screens/src/fabric"
-          echo "Files in fabric dir:"
-          ls "$FABRIC_DIR"
-          echo "Patching props with 'undefined' type..."
-          for FILE in "$FABRIC_DIR"/*.ts; do
-            # إزالة | undefined من props التي تسبب مشكلة في codegen
-            # النمط: propName?: SomeType | undefined => propName?: SomeType
-            sed -i 's/ | undefined;//g' "$FILE"
-            sed -i 's/ | undefined>/>/g' "$FILE"
-            # إزالة سطور DirectEventHandler مع Readonly<{}>
-            sed -i '/DirectEventHandler.*Readonly<{}>/d' "$FILE"
-            sed -i '/type On.*Event = Readonly<{}>/d' "$FILE"
-          done
-          echo "Patch complete. Checking remaining issues..."
-          grep -rn "undefined" "$FABRIC_DIR"/*.ts | grep -v "\/\/" | head -20 || echo "No issues found"
+          node << 'JSEOF'
+          const fs = require('fs');
+          const path = require('path');
+          const dir = 'node_modules/react-native-screens/src/fabric';
+          
+          if (!fs.existsSync(dir)) {
+            console.log('No fabric dir found');
+            process.exit(0);
+          }
+          
+          const files = fs.readdirSync(dir).filter(f => f.endsWith('.ts'));
+          console.log('Files to patch:', files);
+          
+          for (const file of files) {
+            const filepath = path.join(dir, file);
+            let content = fs.readFileSync(filepath, 'utf8');
+            const original = content;
+            
+            // إزالة | undefined من نهاية أنواع props
+            content = content.replace(/\s*\|\s*undefined;(\s*)$/gm, ';$1');
+            content = content.replace(/\s*\|\s*undefined>\s*\|/g, '> |');
+            content = content.replace(/\(\s*\n\s*\|\s*CT\.DirectEventHandler[^)]+\)\s*\|\s*undefined;/gs, (m) => {
+              return m.replace(/\s*\|\s*undefined;$/, ';');
+            });
+            
+            // إزالة سطور event handlers التي تعتمد على Readonly<{}>
+            content = content.replace(/.*onAttached.*\n/g, '');
+            content = content.replace(/.*onDetached.*\n/g, '');
+            content = content.replace(/.*OnAttachedEvent.*\n/g, '');
+            content = content.replace(/.*OnDetachedEvent.*\n/g, '');
+            content = content.replace(/\/\/ eslint-disable-next-line @typescript-eslint\/ban-types\ntype On(Attached|Detached)Event[^\n]*\n/g, '');
+            
+            if (content !== original) {
+              fs.writeFileSync(filepath, content);
+              console.log('Patched:', file);
+            } else {
+              console.log('No changes:', file);
+            }
+          }
+          console.log('Done');
+          JSEOF
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
