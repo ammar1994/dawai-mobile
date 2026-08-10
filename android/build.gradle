@@ -5,12 +5,12 @@ buildscript {
         compileSdkVersion = 35
         targetSdkVersion  = 35
         ndkVersion        = "27.1.12297006"
-        kotlinVersion     = "2.0.21"
+        kotlinVersion     = "1.9.25"
     }
     repositories { google(); mavenCentral() }
     dependencies {
-        classpath("com.android.tools.build:gradle:8.8.2")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21")
+        classpath("com.android.tools.build:gradle:8.6.1")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25")
     }
 }
 plugins {
@@ -20,8 +20,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url "$rootDir/../node_modules/react-native/android" }
-        maven { url "$rootDir/../node_modules/jsc-android/dist" }
         maven { url "https://www.jitpack.io" }
     }
 }
