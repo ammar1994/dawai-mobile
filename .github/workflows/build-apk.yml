@@ -30,6 +30,22 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Fix react-native-screens fabric types (RN 0.79 codegen compat)
+        run: |
+          # RN 0.79 codegen rejects `| undefined` in fabric prop types
+          # react-native-screens 4.18.0 has this issue — fix inline
+          FABRIC_DIR="node_modules/react-native-screens/src/fabric"
+          if [ -d "$FABRIC_DIR" ]; then
+            echo "Patching fabric types in $FABRIC_DIR ..."
+            find "$FABRIC_DIR" -name "*.ts" | while read f; do
+              sed -i 's/ | undefined//g' "$f"
+              echo "  patched: $f"
+            done
+            echo "Done."
+          else
+            echo "No fabric dir found, skipping."
+          fi
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -83,8 +99,8 @@ jobs:
             -Dkotlin.compiler.execution.strategy=in-process \
             2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
-          echo "=== KOTLIN/JAVA ERRORS ==="
-          grep -E "^e: |error:|Unresolved|does not exist|cannot find" /tmp/build.log | head -30 || true
+          echo "=== ERRORS ==="
+          grep -E "^e: |error:|Unresolved|does not exist|cannot find|Unknown" /tmp/build.log | head -30 || true
           echo "=== LAST 60 LINES ==="
           tail -60 /tmp/build.log
           exit $EXIT
