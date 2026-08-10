@@ -13,3 +13,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
 rootProject.name = 'DawaiApp'
 include ':app'
 includeBuild('../node_modules/@react-native/gradle-plugin')
+
+// Old autolinking mechanism (cli-platform-android) — ensures native modules are included
+apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+applyNativeModulesSettingsGradle(settings)

@@ -3,7 +3,7 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 react {
-    // Hermes controlled via gradle.properties: hermesEnabled=true
+    // Hermes enabled via gradle.properties
 }
 
 android {
@@ -50,3 +50,7 @@ dependencies {
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
 }
+
+// Old autolinking mechanism — links native module Android code
+apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+applyNativeModulesAppBuildGradle(project)
