@@ -30,20 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Patch ScreenStackHeaderSubviewNativeComponent for Codegen
-        run: |
-          FILE="node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts"
-          echo "Before patch:"
-          cat "$FILE"
-          # Fix 1: remove | undefined from boolean prop
-          sed -i 's/hidesSharedBackground?: boolean | undefined;/hidesSharedBackground?: boolean;/g' "$FILE"
-          # Fix 2: type? with WithDefault is invalid - remove the ? to make it required
-          sed -i 's/  type?: CT\.WithDefault</  type: CT.WithDefault</g' "$FILE"
-          # Fix 3: synchronousShadowStateUpdatesEnabled same issue
-          sed -i 's/  synchronousShadowStateUpdatesEnabled?: CT\.WithDefault</  synchronousShadowStateUpdatesEnabled: CT.WithDefault</g' "$FILE"
-          echo "After patch:"
-          cat "$FILE"
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
