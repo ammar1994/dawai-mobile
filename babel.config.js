@@ -20,4 +20,12 @@ module.exports = {
       },
     ],
   ],
+  overrides: [
+    {
+      // تعطيل codegen على ملفات fabric الإشكالية
+      test: /react-native-screens[\/]src[\/]fabric/,
+      plugins: [],
+      presets: [],
+    },
+  ],
 };
