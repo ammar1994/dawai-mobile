@@ -5,11 +5,4 @@
         <item name="colorPrimaryDark">#C2177A</item>
         <item name="colorAccent">#E91E8C</item>
     </style>
-
-    <!-- BootTheme: يُستخدم من RNBootSplash في MainActivity.kt -->
-    <style name="BootTheme" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#1A1A2E</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
-        <item name="postSplashScreenTheme">@style/AppTheme</item>
-    </style>
 </resources>
