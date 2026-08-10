@@ -65,7 +65,26 @@ android {
 }
 
 dependencies {
+    // React Native core
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
+    // Splash screen
     implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // ─── Native module dependencies (autolinking gap fix) ───────────────
+    // RN 0.76 generates PackageList.java with these imports but does NOT
+    // automatically add implementation project() — we must do it manually.
+    implementation project(':d11_react_native_fast_image')
+    implementation project(':notifee_react_native')
+    implementation project(':react_native_async_storage_async_storage')
+    implementation project(':react_native_community_geolocation')
+    implementation project(':react_native_community_netinfo')
+    implementation project(':react_native_bootsplash')
+    implementation project(':react_native_gesture_handler')
+    implementation project(':react_native_image_picker')
+    implementation project(':react_native_linear_gradient')
+    implementation project(':react_native_permissions')
+    implementation project(':react_native_safe_area_context')
+    implementation project(':react_native_screens')
+    implementation project(':react_native_vector_icons')
 }
