@@ -16,11 +16,9 @@ buildscript {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25")
     }
 }
-
 plugins {
     id("com.facebook.react.rootproject")
 }
-
 allprojects {
     repositories {
         google()
