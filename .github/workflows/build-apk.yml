@@ -92,26 +92,21 @@ jobs:
           retention-days: 30
 
 
-      - name: Save errors to repo for debugging
+      - name: Print full build errors
         if: failure()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Collect key errors
-          {
-            echo "=== RUN #${{ github.run_number }} | $(date) ==="
-            echo "--- KEY ERRORS ---"
-            grep -E "error:|Error:|FAILURE|Caused by:|what went wrong|Cannot resolve|Could not" \
-              /tmp/build.log 2>/dev/null | grep -v "at " | tail -60 || true
-            echo "--- LAST 120 LINES ---"
-            tail -120 /tmp/build.log 2>/dev/null || echo "no log"
-          } > /tmp/errors_raw.txt
-          # Use gh CLI to create/update a gist
-          GIST_URL=$(gh gist create /tmp/errors_raw.txt --desc "Build errors run #${{ github.run_number }}" 2>&1 | grep "https://gist" || true)
-          echo "GIST: $GIST_URL"
-          echo "$GIST_URL" > /tmp/gist_url.txt
-          # Also post as issue comment on latest issue if any
-          echo "Key errors saved. Gist: $GIST_URL"
+          echo "============================================"
+          echo "BUILD FAILURE — FULL KEY ERRORS"
+          echo "============================================"
+          if [ -f /tmp/build.log ]; then
+            echo "--- ERRORS AND FAILURES ---"
+            grep -n "error:\|Error:\|FAILURE:\|Caused by:\|what went wrong\|Cannot resolve\|Could not\|package.*does not exist\|cannot find symbol\|Task.*FAILED" \
+              /tmp/build.log | grep -v "^.*at com\." | head -100
+            echo ""
+            echo "--- LAST 200 LINES OF BUILD LOG ---"
+            tail -200 /tmp/build.log
+          fi
+          echo "============================================"
 
       - name: Upload build log on failure
         if: failure()
