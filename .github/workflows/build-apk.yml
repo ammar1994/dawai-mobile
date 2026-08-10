@@ -28,7 +28,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps --force 2>&1 | tail -50
+        run: npm install --legacy-peer-deps
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -68,13 +68,25 @@ jobs:
             --assets-dest android/app/src/main/res
           echo "Bundle: $(du -sh android/app/src/main/assets/index.android.bundle)"
 
-      - name: Build Debug APK
+      - name: Clean Gradle Project
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
+          ./gradlew clean --no-daemon
+        env:
+          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
+
+      - name: Build Debug APK
+        working-directory: android
+        run: |
+          ./gradlew assembleDebug --no-daemon --stacktrace \
+            -Dkotlin.compiler.execution.strategy=in-process \
+            2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
-          tail -100 /tmp/build.log
+          echo "=== KOTLIN/JAVA ERRORS ==="
+          grep -E "^e: |error:|Unresolved|does not exist|cannot find" /tmp/build.log | head -30 || true
+          echo "=== LAST 60 LINES ==="
+          tail -60 /tmp/build.log
           exit $EXIT
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
@@ -93,7 +105,6 @@ jobs:
           APK=$(find android -name "*.apk" 2>/dev/null | head -1)
           if [ -z "$APK" ]; then
             echo "No APK found"
-            find android/app/build/outputs -type f 2>/dev/null | head -20
             exit 1
           fi
           echo "APK: $APK ($(du -sh "$APK" | cut -f1))"
