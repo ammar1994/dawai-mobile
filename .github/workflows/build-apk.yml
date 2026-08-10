@@ -30,18 +30,13 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Patch react-native-screens Fabric Codegen
+      - name: Patch ScreenStackHeaderSubviewNativeComponent for Codegen
         run: |
-          echo "Patching react-native-screens fabric types for RN Codegen..."
-          FABRIC_DIR="node_modules/react-native-screens/src/fabric"
-          if [ -d "$FABRIC_DIR" ]; then
-            # Remove all forms of | undefined (with or without space)
-            find "$FABRIC_DIR" -name "*.ts" -exec sed -i 's/ | undefined//g; s/|undefined//g' {} +
-            echo "Patched files:"
-            ls "$FABRIC_DIR"/*.ts 2>/dev/null | head -20
-          else
-            echo "No fabric dir found"
-          fi
+          echo "Replacing boolean | undefined in ScreenStackHeaderSubviewNativeComponent.ts"
+          sed -i 's/hidesSharedBackground?: boolean | undefined;/hidesSharedBackground?: boolean;/g' \
+            node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
+          echo "Targeted patch applied"
+          grep "hidesSharedBackground" node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
