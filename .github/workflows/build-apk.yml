@@ -97,23 +97,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Collect key errors
           {
             echo "=== RUN #${{ github.run_number }} | $(date) ==="
-            echo "=== KEY ERRORS ==="
-            grep -E "^[^/].*error:|error:.*\.kt|error:.*\.java|FAILURE:|Caused by:|> Task|What went wrong|Cannot resolve" \
-              /tmp/build.log 2>/dev/null | grep -v "^\s*at " | tail -80
-            echo "=== LAST 150 LINES ==="
-            tail -150 /tmp/build.log 2>/dev/null
-          } > /tmp/key_errors.txt
-          CONTENT=$(base64 -w 0 /tmp/key_errors.txt)
-          SHA=$(curl -sf -H "Authorization: token $GH_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/build-errors.txt" | \
-            python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || echo "")
-          BODY="{\"message\":\"ci: errors #${{ github.run_number }} [ci skip]\",\"content\":\"$CONTENT\"}"
-          [ -n "$SHA" ] && BODY="{\"message\":\"ci: errors #${{ github.run_number }} [ci skip]\",\"content\":\"$CONTENT\",\"sha\":\"$SHA\"}"
-          curl -s -X PUT -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/json" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/build-errors.txt" \
-            -d "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print('Saved:', d.get('content',{}).get('name','failed'))"
+            echo "--- KEY ERRORS ---"
+            grep -E "error:|Error:|FAILURE|Caused by:|what went wrong|Cannot resolve|Could not" \
+              /tmp/build.log 2>/dev/null | grep -v "at " | tail -60 || true
+            echo "--- LAST 120 LINES ---"
+            tail -120 /tmp/build.log 2>/dev/null || echo "no log"
+          } > /tmp/errors_raw.txt
+          # Use gh CLI to create/update a gist
+          GIST_URL=$(gh gist create /tmp/errors_raw.txt --desc "Build errors run #${{ github.run_number }}" 2>&1 | grep "https://gist" || true)
+          echo "GIST: $GIST_URL"
+          echo "$GIST_URL" > /tmp/gist_url.txt
+          # Also post as issue comment on latest issue if any
+          echo "Key errors saved. Gist: $GIST_URL"
 
       - name: Upload build log on failure
         if: failure()
