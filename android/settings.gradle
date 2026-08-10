@@ -6,22 +6,11 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-
 plugins {
     id("com.facebook.react.settings")
 }
-
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-    // Explicitly set node executable path for CI environments
-    // where PATH may not include node during Gradle config phase
-    def nodeCmd = System.getenv("NODE") ?: "node"
-    ex.autolinkLibrariesFromCommand(
-        nodeCmd,
-        ["--no-warnings",
-         "./node_modules/@react-native-community/cli/build/bin.js",
-         "config"]
-    )
+    ex.autolinkLibrariesFromCommand()
 }
-
 rootProject.name = 'DawaiApp'
 include ':app'
