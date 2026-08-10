@@ -30,50 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Patch react-native-screens fabric
-        run: |
-          node << 'JSEOF'
-          const fs = require('fs');
-          const path = require('path');
-          const dir = 'node_modules/react-native-screens/src/fabric';
-          
-          if (!fs.existsSync(dir)) {
-            console.log('No fabric dir found');
-            process.exit(0);
-          }
-          
-          const files = fs.readdirSync(dir).filter(f => f.endsWith('.ts'));
-          console.log('Files to patch:', files);
-          
-          for (const file of files) {
-            const filepath = path.join(dir, file);
-            let content = fs.readFileSync(filepath, 'utf8');
-            const original = content;
-            
-            // إزالة | undefined من نهاية أنواع props
-            content = content.replace(/\s*\|\s*undefined;(\s*)$/gm, ';$1');
-            content = content.replace(/\s*\|\s*undefined>\s*\|/g, '> |');
-            content = content.replace(/\(\s*\n\s*\|\s*CT\.DirectEventHandler[^)]+\)\s*\|\s*undefined;/gs, (m) => {
-              return m.replace(/\s*\|\s*undefined;$/, ';');
-            });
-            
-            // إزالة سطور event handlers التي تعتمد على Readonly<{}>
-            content = content.replace(/.*onAttached.*\n/g, '');
-            content = content.replace(/.*onDetached.*\n/g, '');
-            content = content.replace(/.*OnAttachedEvent.*\n/g, '');
-            content = content.replace(/.*OnDetachedEvent.*\n/g, '');
-            content = content.replace(/\/\/ eslint-disable-next-line @typescript-eslint\/ban-types\ntype On(Attached|Detached)Event[^\n]*\n/g, '');
-            
-            if (content !== original) {
-              fs.writeFileSync(filepath, content);
-              console.log('Patched:', file);
-            } else {
-              console.log('No changes:', file);
-            }
-          }
-          console.log('Done');
-          JSEOF
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -118,7 +74,7 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
-          tail -80 /tmp/build.log
+          tail -100 /tmp/build.log
           exit $EXIT
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
@@ -156,7 +112,7 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: "DawaiApp Debug Build #${{ github.run_number }}"
-          body: "Build ${{ github.run_number }} from ${{ github.sha }}"
+          body: "Build ${{ github.run_number }} — RN 0.79.7"
           files: DawaiApp-debug.apk
           fail_on_unmatched_files: false
           prerelease: true
