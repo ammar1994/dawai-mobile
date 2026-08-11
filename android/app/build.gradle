@@ -74,17 +74,18 @@ dependencies {
     // ─── Native module dependencies (autolinking gap fix) ───────────────
     // RN 0.76 generates PackageList.java with these imports but does NOT
     // automatically add implementation project() — we must do it manually.
-    implementation project(':d11_react_native_fast_image')
-    implementation project(':notifee_react_native')
-    implementation project(':react_native_async_storage_async_storage')
-    implementation project(':react_native_community_geolocation')
-    implementation project(':react_native_community_netinfo')
-    implementation project(':react_native_bootsplash')
-    implementation project(':react_native_gesture_handler')
-    implementation project(':react_native_image_picker')
-    implementation project(':react_native_linear_gradient')
-    implementation project(':react_native_permissions')
-    implementation project(':react_native_safe_area_context')
-    implementation project(':react_native_screens')
-    implementation project(':react_native_vector_icons')
+    // Project names use nameCleansed: [~*!'()]→_ and @scope/pkg→scope_pkg
+    implementation project(':d11_react-native-fast-image')
+    implementation project(':notifee_react-native')
+    implementation project(':react-native-async-storage_async-storage')
+    implementation project(':react-native-community_geolocation')
+    implementation project(':react-native-community_netinfo')
+    implementation project(':react-native-bootsplash')
+    implementation project(':react-native-gesture-handler')
+    implementation project(':react-native-image-picker')
+    implementation project(':react-native-linear-gradient')
+    implementation project(':react-native-permissions')
+    implementation project(':react-native-safe-area-context')
+    implementation project(':react-native-screens')
+    implementation project(':react-native-vector-icons')
 }
