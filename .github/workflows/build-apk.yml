@@ -28,14 +28,20 @@ jobs:
       - name: Install Node deps
         run: npm install --legacy-peer-deps
 
-      - name: Check autolinking
+      - name: Dump react-native config
         run: |
-          echo '=== gradle-plugin version ==='
-          node -e "console.log(require('./node_modules/@react-native/gradle-plugin/package.json').version)" 2>/dev/null || echo 'not at root'
-          echo '=== react-native version ==='
-          node -e "console.log(require('./node_modules/react-native/package.json').version)"
-          echo '=== PackageList check ==='
-          ls node_modules/@react-native-community/cli-platform-android/ 2>/dev/null | head -10 || echo 'cli-platform-android not found'
+          npx react-native config > /tmp/rn-config.json 2>/tmp/rn-config-err.txt || true
+          echo '=== Android packages found by autolinking ==='
+          node -e "
+            const cfg = require('/tmp/rn-config.json');
+            const deps = cfg.dependencies || {};
+            Object.entries(deps).forEach(([name, info]) => {
+              const android = (info.platforms || {}).android;
+              if (android) console.log(name + ': ' + (android.sourceDir || 'NO sourceDir'));
+            });
+          " 2>/dev/null || echo 'config parse failed'
+          echo '=== Errors ==='
+          cat /tmp/rn-config-err.txt | head -20
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -75,8 +81,8 @@ jobs:
             find . -name 'PackageList.java' -exec cat {} \;
             echo '=== ERRORS ==='
             grep -E 'error:|FAILURE|What went wrong|Caused by:' /tmp/build.log | head -50
-            echo '=== LAST 150 LINES ==='
-            tail -150 /tmp/build.log
+            echo '=== LAST 100 LINES ==='
+            tail -100 /tmp/build.log
             exit $EXIT
           fi
         env:
