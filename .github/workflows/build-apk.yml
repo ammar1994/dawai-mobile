@@ -40,7 +40,6 @@ jobs:
           SCREENS_SRC="node_modules/react-native-screens/src"
           if [ -d "$SCREENS_SRC" ]; then
             find "$SCREENS_SRC" -name "*.ts" -exec sed -i 's/ | undefined//g' {} \;
-            echo "Patched react-native-screens src/"
           fi
 
       - name: Setup Android SDK
@@ -70,18 +69,35 @@ jobs:
       - name: Clear autolinking cache
         run: rm -rf android/build/generated/autolinking/
 
+      - name: Test npx react-native config
+        run: |
+          echo "=== Testing npx react-native config ==="
+          npx react-native config 2>&1 | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    deps = data.get('dependencies', {})
+    print(f'Found {len(deps)} dependencies:')
+    for k in list(deps.keys())[:20]:
+        android = deps[k].get('platforms', {}).get('android')
+        print(f'  {k}: sourceDir={android.get("sourceDir") if android else None}')
+except Exception as e:
+    print(f'Error parsing config: {e}')
+    sys.stdin = open('/dev/stdin')
+" || echo "npx react-native config FAILED"
+
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon \
+          ./gradlew assembleDebug --no-daemon --info \
             -Dkotlin.compiler.execution.strategy=in-process \
             2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
-          echo "=== ERRORS ==="
-          grep -E "error:|Error |FAILED|Caused by:|does not exist|cannot find" /tmp/build.log | grep -v "^>" | head -50 || true
-          echo "=== LAST 50 LINES ==="
-          tail -50 /tmp/build.log
+          echo "=== CONFIGURE ERRORS ==="
+          grep -E "autolinkLibraries|autolinking|ERROR.*autolink|GradleException|does not exist|cannot find|PackageList" /tmp/build.log | head -40 || true
+          echo "=== LAST 60 LINES ==="
+          tail -60 /tmp/build.log
           exit $EXIT
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
@@ -102,14 +118,3 @@ jobs:
           path: /tmp/build.log
           if-no-files-found: ignore
           retention-days: 7
-
-      - name: Create GitHub Release
-        if: success()
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: "DawaiApp Debug Build #${{ github.run_number }}"
-          files: android/app/build/outputs/apk/debug/*.apk
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
