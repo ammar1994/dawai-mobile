@@ -71,22 +71,23 @@ jobs:
 
       - name: Test npx react-native config
         run: |
-          echo "=== Testing npx react-native config ==="
           npx react-native config > /tmp/rn-config.json 2>&1 || true
-          python3 -c "
-import json, sys
-try:
-    data = json.load(open('/tmp/rn-config.json'))
-    deps = data.get('dependencies', {})
-    print(f'Found {len(deps)} dependencies')
-    for k in list(deps.keys())[:20]:
-        android = deps[k].get('platforms', {}).get('android')
-        src = android.get('sourceDir') if android else None
-        print(f'  {k}: {src}')
-except Exception as e:
-    print(f'Parse error: {e}')
-    print(open('/tmp/rn-config.json').read()[:500])
-"
+          echo "=== Dependencies found by CLI ==="
+          node -e "
+            const fs = require('fs');
+            try {
+              const data = JSON.parse(fs.readFileSync('/tmp/rn-config.json'));
+              const deps = data.dependencies || {};
+              console.log('Total deps:', Object.keys(deps).length);
+              Object.entries(deps).slice(0, 20).forEach(([k,v]) => {
+                const src = v.platforms && v.platforms.android && v.platforms.android.sourceDir;
+                console.log(' ', k, '->', src || 'NO ANDROID');
+              });
+            } catch(e) {
+              console.log('Parse error:', e.message);
+              console.log(fs.readFileSync('/tmp/rn-config.json').toString().slice(0, 300));
+            }
+          "
 
       - name: Build Debug APK
         working-directory: android
@@ -97,7 +98,7 @@ except Exception as e:
             2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
           echo "=== ERRORS ==="
-          grep -E "error:|Error |FAILED|Caused by:|does not exist|cannot find|autolinkLib|GradleException" \
+          grep -E "error:|FAILED|Caused by:|does not exist|cannot find|autolinkLib|GradleException" \
             /tmp/build.log | grep -v "^>" | head -50 || true
           echo "=== LAST 60 LINES ==="
           tail -60 /tmp/build.log
