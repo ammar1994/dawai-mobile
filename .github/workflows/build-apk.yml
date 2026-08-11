@@ -92,21 +92,70 @@ jobs:
           retention-days: 30
 
 
-      - name: Print full build errors
+      - name: Post build errors as GitHub Issue
         if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "============================================"
-          echo "BUILD FAILURE — FULL KEY ERRORS"
-          echo "============================================"
-          if [ -f /tmp/build.log ]; then
-            echo "--- ERRORS AND FAILURES ---"
-            grep -n "error:\|Error:\|FAILURE:\|Caused by:\|what went wrong\|Cannot resolve\|Could not\|package.*does not exist\|cannot find symbol\|Task.*FAILED" \
-              /tmp/build.log | grep -v "^.*at com\." | head -100
-            echo ""
-            echo "--- LAST 200 LINES OF BUILD LOG ---"
-            tail -200 /tmp/build.log
-          fi
-          echo "============================================"
+          python3 << 'PYEOF'
+import subprocess, json, urllib.request, urllib.error, os
+
+log_path = "/tmp/build.log"
+try:
+    with open(log_path) as f:
+        lines = f.readlines()
+except:
+    lines = ["No build log found"]
+
+# Key errors
+errors = [l for l in lines if any(k in l for k in [
+    "error:", "Error:", "FAILURE:", "Caused by:", "what went wrong",
+    "Cannot resolve", "Could not", "package.*does not exist",
+    "cannot find symbol", "Task.*FAILED", "does not exist"
+]) and "at com." not in l and "at org." not in l]
+
+body = "## Build Failure #${{ github.run_number }}
+
+"
+body += "### Key Errors
+```
+"
+body += "".join(errors[-60:])
+body += "
+```
+
+### Last 150 Lines
+```
+"
+body += "".join(lines[-150:])
+body += "
+```"
+
+payload = json.dumps({
+    "title": "Build error run #${{ github.run_number }}",
+    "body": body[:65000],
+    "labels": ["build-error"]
+}).encode()
+
+token = os.environ.get("GH_TOKEN", "")
+req = urllib.request.Request(
+    "https://api.github.com/repos/ammar1994/dawai-mobile/issues",
+    data=payload,
+    headers={
+        "Authorization": f"token {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/vnd.github.v3+json"
+    },
+    method="POST"
+)
+try:
+    resp = urllib.request.urlopen(req)
+    issue = json.loads(resp.read())
+    print(f"Issue created: {issue.get('html_url')}")
+    print(f"Issue number: {issue.get('number')}")
+except urllib.error.HTTPError as e:
+    print(f"Failed: {e.read().decode()}")
+PYEOF
 
       - name: Upload build log on failure
         if: failure()
