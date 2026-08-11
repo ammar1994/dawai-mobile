@@ -1,9 +1,13 @@
-name: Build DAWAI APK
+name: Build APK
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
 
 jobs:
   build:
@@ -13,53 +17,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: temurin
+          distribution: 'temurin'
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install npm dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Make node available to Gradle subprocesses
-        run: |
-          NODE_DIR=$(dirname $(which node))
-          echo "$NODE_DIR" >> $GITHUB_PATH
-          sudo ln -sf "$(which node)" /usr/local/bin/node || true
-          sudo ln -sf "$(which npm)"  /usr/local/bin/npm  || true
-          sudo ln -sf "$(which npx)"  /usr/local/bin/npx  || true
-          echo "node: $(node --version), npm: $(npm --version)"
+      - name: Make node available to Gradle
+        run: echo "PATH=$(dirname $(which node)):$PATH" >> $GITHUB_ENV
 
-      - uses: android-actions/setup-android@v3
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
         with:
-          accept-android-sdk-licenses: 'true'
+          accept-android-sdk-licenses: true
 
       - name: Install Android SDK components
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties', 'android/**/*.gradle') }}
-          restore-keys: gradle-
-
       - name: Setup keystore and local.properties
         run: |
-          keytool -genkeypair -v \
-            -keystore android/app/debug.keystore \
+          keytool -genkeypair -v -keystore android/app/debug.keystore \
             -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass android -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US" 2>/dev/null || true
+            -dname "CN=Android Debug,O=Android,C=US"
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: Copy vector icon fonts
@@ -70,97 +60,33 @@ jobs:
 
       - name: Build Debug APK
         working-directory: android
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --info 2>&1 | tee /tmp/build.log
-          EXIT=${PIPESTATUS[0]}
-          if [ $EXIT -ne 0 ]; then
-            echo "::error::Build failed. Key errors:"
-            grep -E "error:|Error|FAILURE|Caused by:|What went wrong" /tmp/build.log | \
-              grep -v "^[[:space:]]*at " | head -20
-            exit 1
-          fi
 
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DawaiApp-debug
+          name: DawaiApp-debug-${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
           retention-days: 30
 
-
-      - name: Post build errors as GitHub Issue
+      - name: Post build errors as GitHub issue
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 << 'PYEOF'
-import subprocess, json, urllib.request, urllib.error, os
+        run: python3 .github/scripts/post_build_issue.py
 
-log_path = "/tmp/build.log"
-try:
-    with open(log_path) as f:
-        lines = f.readlines()
-except:
-    lines = ["No build log found"]
-
-# Key errors
-errors = [l for l in lines if any(k in l for k in [
-    "error:", "Error:", "FAILURE:", "Caused by:", "what went wrong",
-    "Cannot resolve", "Could not", "package.*does not exist",
-    "cannot find symbol", "Task.*FAILED", "does not exist"
-]) and "at com." not in l and "at org." not in l]
-
-body = "## Build Failure #${{ github.run_number }}
-
-"
-body += "### Key Errors
-```
-"
-body += "".join(errors[-60:])
-body += "
-```
-
-### Last 150 Lines
-```
-"
-body += "".join(lines[-150:])
-body += "
-```"
-
-payload = json.dumps({
-    "title": "Build error run #${{ github.run_number }}",
-    "body": body[:65000],
-    "labels": ["build-error"]
-}).encode()
-
-token = os.environ.get("GH_TOKEN", "")
-req = urllib.request.Request(
-    "https://api.github.com/repos/ammar1994/dawai-mobile/issues",
-    data=payload,
-    headers={
-        "Authorization": f"token {token}",
-        "Content-Type": "application/json",
-        "Accept": "application/vnd.github.v3+json"
-    },
-    method="POST"
-)
-try:
-    resp = urllib.request.urlopen(req)
-    issue = json.loads(resp.read())
-    print(f"Issue created: {issue.get('html_url')}")
-    print(f"Issue number: {issue.get('number')}")
-except urllib.error.HTTPError as e:
-    print(f"Failed: {e.read().decode()}")
-PYEOF
-
-      - name: Upload build log on failure
-        if: failure()
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
+          name: build-log-${{ github.run_number }}
           path: /tmp/build.log
+          if-no-files-found: ignore
           retention-days: 7
