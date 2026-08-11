@@ -14,68 +14,60 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Set up Node 18
+      - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
 
-      - name: Set up Android SDK
+      - name: Install Node deps
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
 
-      - name: Install SDK + NDK
+      - name: Install SDK packages
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;26.1.10909125"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
 
       - name: Copy vector-icons fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
           cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
 
-      - name: Create debug keystore if missing
+      - name: Create keystore
         run: |
-          if [ ! -f android/app/debug.keystore ]; then
-            keytool -genkeypair -v -keystore android/app/debug.keystore \
-              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
-          else
-            echo "debug.keystore exists"
-          fi
+          keytool -genkeypair -v \
+            -keystore android/app/debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Create local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-
-      - name: Verify autolinking
-        run: |
-          echo "Node: $(node --version)"
-          node node_modules/@react-native-community/cli/build/bin.js config 2>/dev/null | python3 -c "
-import json, sys
-d = json.load(sys.stdin)
-android = [k for k,v in d.get('dependencies',{}).items() if v.get('platforms',{}).get('android')]
-print(f'Found {len(android)} android packages')
-for k in android: print(f'  {k}')
-          "
 
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
+          set +e
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
+          set -e
           if [ $EXIT -ne 0 ]; then
-            echo "=== KEY ERRORS ==="
-            grep -E "Caused by:|error: |cannot find|No matching variant|does not exist" /tmp/build.log | head -30
+            echo "========== ERRORS =========="
+            grep -E "error:|FAILURE|What went wrong|Caused by:|> " /tmp/build.log | head -100
+            echo "========== LAST 200 LINES =========="
+            tail -200 /tmp/build.log
             exit $EXIT
           fi
         env:
@@ -85,6 +77,6 @@ for k in android: print(f'  {k}')
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DawaiApp-debug
+          name: DawaiApp-debug-${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
