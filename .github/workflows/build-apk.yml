@@ -39,7 +39,7 @@ jobs:
         run: |
           SCREENS_SRC="node_modules/react-native-screens/src"
           if [ -d "$SCREENS_SRC" ]; then
-            find "$SCREENS_SRC" -name "*.ts" -exec sed -i 's/ | undefined//g' {} \;
+            find "$SCREENS_SRC" -name "*.ts" -exec sed -i 's/ | undefined//g' {} +
           fi
 
       - name: Setup Android SDK
@@ -72,30 +72,33 @@ jobs:
       - name: Test npx react-native config
         run: |
           echo "=== Testing npx react-native config ==="
-          npx react-native config 2>&1 | python3 -c "
-import sys, json
+          npx react-native config > /tmp/rn-config.json 2>&1 || true
+          python3 -c "
+import json, sys
 try:
-    data = json.load(sys.stdin)
+    data = json.load(open('/tmp/rn-config.json'))
     deps = data.get('dependencies', {})
-    print(f'Found {len(deps)} dependencies:')
+    print(f'Found {len(deps)} dependencies')
     for k in list(deps.keys())[:20]:
         android = deps[k].get('platforms', {}).get('android')
-        print(f'  {k}: sourceDir={android.get("sourceDir") if android else None}')
+        src = android.get('sourceDir') if android else None
+        print(f'  {k}: {src}')
 except Exception as e:
-    print(f'Error parsing config: {e}')
-    sys.stdin = open('/dev/stdin')
-" || echo "npx react-native config FAILED"
+    print(f'Parse error: {e}')
+    print(open('/tmp/rn-config.json').read()[:500])
+"
 
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --info \
+          ./gradlew assembleDebug --no-daemon \
             -Dkotlin.compiler.execution.strategy=in-process \
             2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
-          echo "=== CONFIGURE ERRORS ==="
-          grep -E "autolinkLibraries|autolinking|ERROR.*autolink|GradleException|does not exist|cannot find|PackageList" /tmp/build.log | head -40 || true
+          echo "=== ERRORS ==="
+          grep -E "error:|Error |FAILED|Caused by:|does not exist|cannot find|autolinkLib|GradleException" \
+            /tmp/build.log | grep -v "^>" | head -50 || true
           echo "=== LAST 60 LINES ==="
           tail -60 /tmp/build.log
           exit $EXIT
@@ -118,3 +121,14 @@ except Exception as e:
           path: /tmp/build.log
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Create GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "DawaiApp Debug Build #${{ github.run_number }}"
+          files: android/app/build/outputs/apk/debug/*.apk
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
