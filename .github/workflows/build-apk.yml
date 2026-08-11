@@ -1,12 +1,9 @@
-name: Build APK
+name: Build DAWAI APK
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
@@ -14,95 +11,73 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Node.js
+      - name: Set up Node 18
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
 
-      - name: Install npm dependencies
-        run: |
-          rm -f package-lock.json
-          npm install --legacy-peer-deps
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
 
-      - name: Make node available to Gradle
-        run: echo "PATH=$(dirname $(which node)):$PATH" >> $GITHUB_ENV
-
-      - name: Fix react-native-screens codegen types
-        run: |
-          SCREENS_SRC="node_modules/react-native-screens/src"
-          if [ -d "$SCREENS_SRC" ]; then
-            find "$SCREENS_SRC" -name "*.ts" -exec sed -i 's/ | undefined//g' {} +
-          fi
-
-      - name: Setup Android SDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
 
-      - name: Install Android SDK components
+      - name: Install SDK + NDK
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;26.1.10909125"
 
-      - name: Setup keystore and local.properties
-        run: |
-          keytool -genkeypair -v -keystore android/app/debug.keystore \
-            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US"
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-
-      - name: Copy vector icon fonts
+      - name: Copy vector-icons fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
-          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
-             android/app/src/main/assets/fonts/ 2>/dev/null || true
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
 
-      - name: Clear autolinking cache
-        run: rm -rf android/build/generated/autolinking/
-
-      - name: Test npx react-native config
+      - name: Create debug keystore if missing
         run: |
-          npx react-native config > /tmp/rn-config.json 2>&1 || true
-          echo "=== Dependencies found by CLI ==="
-          node -e "
-            const fs = require('fs');
-            try {
-              const data = JSON.parse(fs.readFileSync('/tmp/rn-config.json'));
-              const deps = data.dependencies || {};
-              console.log('Total deps:', Object.keys(deps).length);
-              Object.entries(deps).slice(0, 20).forEach(([k,v]) => {
-                const src = v.platforms && v.platforms.android && v.platforms.android.sourceDir;
-                console.log(' ', k, '->', src || 'NO ANDROID');
-              });
-            } catch(e) {
-              console.log('Parse error:', e.message);
-              console.log(fs.readFileSync('/tmp/rn-config.json').toString().slice(0, 300));
-            }
+          if [ ! -f android/app/debug.keystore ]; then
+            keytool -genkeypair -v -keystore android/app/debug.keystore \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+          else
+            echo "debug.keystore exists"
+          fi
+
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+
+      - name: Verify autolinking
+        run: |
+          echo "Node: $(node --version)"
+          node node_modules/@react-native-community/cli/build/bin.js config 2>/dev/null | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+android = [k for k,v in d.get('dependencies',{}).items() if v.get('platforms',{}).get('android')]
+print(f'Found {len(android)} android packages')
+for k in android: print(f'  {k}')
           "
 
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon \
-            -Dkotlin.compiler.execution.strategy=in-process \
-            2>&1 | tee /tmp/build.log
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
-          echo "=== ERRORS ==="
-          grep -E "error:|FAILED|Caused by:|does not exist|cannot find|autolinkLib|GradleException" \
-            /tmp/build.log | grep -v "^>" | head -50 || true
-          echo "=== LAST 60 LINES ==="
-          tail -60 /tmp/build.log
-          exit $EXIT
+          if [ $EXIT -ne 0 ]; then
+            echo "=== KEY ERRORS ==="
+            grep -E "Caused by:|error: |cannot find|No matching variant|does not exist" /tmp/build.log | head -30
+            exit $EXIT
+          fi
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
 
@@ -110,26 +85,6 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DawaiApp-debug-${{ github.run_number }}
+          name: DawaiApp-debug
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-${{ github.run_number }}
-          path: /tmp/build.log
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Create GitHub Release
-        if: success()
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: "DawaiApp Debug Build #${{ github.run_number }}"
-          files: android/app/build/outputs/apk/debug/*.apk
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
