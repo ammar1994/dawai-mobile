@@ -28,6 +28,15 @@ jobs:
       - name: Install Node deps
         run: npm install --legacy-peer-deps
 
+      - name: Check autolinking
+        run: |
+          echo '=== gradle-plugin version ==='
+          node -e "console.log(require('./node_modules/@react-native/gradle-plugin/package.json').version)" 2>/dev/null || echo 'not at root'
+          echo '=== react-native version ==='
+          node -e "console.log(require('./node_modules/react-native/package.json').version)"
+          echo '=== PackageList check ==='
+          ls node_modules/@react-native-community/cli-platform-android/ 2>/dev/null | head -10 || echo 'cli-platform-android not found'
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -55,40 +64,19 @@ jobs:
       - name: Create local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Debug autolinking
-        run: |
-          echo "=== react-native config (android packages) ==="
-          npx react-native config 2>/dev/null | python3 -c "
-import sys, json
-try:
-    cfg = json.load(sys.stdin)
-    deps = cfg.get('dependencies', {})
-    for name, info in deps.items():
-        android = info.get('platforms', {}).get('android')
-        if android:
-            print(f'{name}: {android.get(\"sourceDir\", \"no sourceDir\")}')
-except: pass
-" || echo "config failed"
-          echo ""
-          echo "=== @react-native/gradle-plugin version ==="
-          cat node_modules/@react-native/gradle-plugin/package.json | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])" 2>/dev/null || echo "not found at root"
-          cat node_modules/react-native/node_modules/@react-native/gradle-plugin/package.json | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])" 2>/dev/null || echo "not found in react-native"
-
       - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          set +e
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
-          set -e
           if [ $EXIT -ne 0 ]; then
-            echo "========== PackageList.java =========="
-            find . -name "PackageList.java" -exec cat {} \; 2>/dev/null || echo "not generated"
-            echo "========== ERRORS =========="
-            grep -E "error:|FAILURE|What went wrong|Caused by:" /tmp/build.log | head -50
-            echo "========== LAST 100 LINES =========="
-            tail -100 /tmp/build.log
+            echo '=== PackageList.java ==='
+            find . -name 'PackageList.java' -exec cat {} \;
+            echo '=== ERRORS ==='
+            grep -E 'error:|FAILURE|What went wrong|Caused by:' /tmp/build.log | head -50
+            echo '=== LAST 150 LINES ==='
+            tail -150 /tmp/build.log
             exit $EXIT
           fi
         env:
