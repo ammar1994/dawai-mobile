@@ -34,6 +34,22 @@ jobs:
       - name: Make node available to Gradle
         run: echo "PATH=$(dirname $(which node)):$PATH" >> $GITHUB_ENV
 
+      - name: Fix react-native-screens | undefined types (RN 0.79 codegen)
+        run: |
+          # RN 0.79 codegen rejects `| undefined` in prop types.
+          # react-native-screens 4.18.0 has this in multiple TS files.
+          # Fix: remove all `| undefined` occurrences in ALL src TS files.
+          SCREENS_SRC="node_modules/react-native-screens/src"
+          if [ -d "$SCREENS_SRC" ]; then
+            COUNT=$(find "$SCREENS_SRC" -name "*.ts" | xargs grep -l "| undefined" 2>/dev/null | wc -l)
+            echo "Found $COUNT files with '| undefined' in $SCREENS_SRC"
+            find "$SCREENS_SRC" -name "*.ts" -exec sed -i 's/ | undefined//g' {} \;
+            REMAINING=$(find "$SCREENS_SRC" -name "*.ts" | xargs grep -l "| undefined" 2>/dev/null | wc -l)
+            echo "After patch: $REMAINING files still have '| undefined'"
+          else
+            echo "WARNING: $SCREENS_SRC not found — skipping"
+          fi
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -58,12 +74,21 @@ jobs:
           cp node_modules/react-native-vector-icons/Fonts/*.ttf \
              android/app/src/main/assets/fonts/ 2>/dev/null || true
 
+      - name: Clean Gradle Project
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew clean --no-daemon
+        env:
+          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
+
       - name: Build Debug APK
         working-directory: android
         run: |
           set -o pipefail
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          ./gradlew assembleDebug --no-daemon --stacktrace \
+            -Dkotlin.compiler.execution.strategy=in-process \
+            2>&1 | tee /tmp/build.log
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
 
