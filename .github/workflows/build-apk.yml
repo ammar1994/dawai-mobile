@@ -34,20 +34,12 @@ jobs:
       - name: Make node available to Gradle
         run: echo "PATH=$(dirname $(which node)):$PATH" >> $GITHUB_ENV
 
-      - name: Fix react-native-screens | undefined types (RN 0.79 codegen)
+      - name: Fix react-native-screens codegen types
         run: |
-          # RN 0.79 codegen rejects `| undefined` in prop types.
-          # react-native-screens 4.18.0 has this in multiple TS files.
-          # Fix: remove all `| undefined` occurrences in ALL src TS files.
           SCREENS_SRC="node_modules/react-native-screens/src"
           if [ -d "$SCREENS_SRC" ]; then
-            COUNT=$(find "$SCREENS_SRC" -name "*.ts" | xargs grep -l "| undefined" 2>/dev/null | wc -l)
-            echo "Found $COUNT files with '| undefined' in $SCREENS_SRC"
             find "$SCREENS_SRC" -name "*.ts" -exec sed -i 's/ | undefined//g' {} \;
-            REMAINING=$(find "$SCREENS_SRC" -name "*.ts" | xargs grep -l "| undefined" 2>/dev/null | wc -l)
-            echo "After patch: $REMAINING files still have '| undefined'"
-          else
-            echo "WARNING: $SCREENS_SRC not found — skipping"
+            echo "Patched react-native-screens src/"
           fi
 
       - name: Setup Android SDK
@@ -74,19 +66,18 @@ jobs:
           cp node_modules/react-native-vector-icons/Fonts/*.ttf \
              android/app/src/main/assets/fonts/ 2>/dev/null || true
 
-      - name: Clean Gradle Project
-        working-directory: android
+      - name: Clear autolinking cache
         run: |
-          chmod +x gradlew
-          ./gradlew clean --no-daemon
-        env:
-          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
+          echo "Clearing autolinking cache to force fresh npx config run..."
+          rm -rf android/build/generated/autolinking/
+          echo "Done"
 
       - name: Build Debug APK
         working-directory: android
         run: |
+          chmod +x gradlew
           set -o pipefail
-          ./gradlew assembleDebug --no-daemon --stacktrace \
+          ./gradlew assembleDebug --no-daemon \
             -Dkotlin.compiler.execution.strategy=in-process \
             2>&1 | tee /tmp/build.log
         env:
@@ -101,12 +92,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Post build errors as GitHub issue
-        if: failure()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 .github/scripts/post_build_issue.py
-
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
@@ -115,3 +100,16 @@ jobs:
           path: /tmp/build.log
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Create GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "DawaiApp Debug Build #${{ github.run_number }}"
+          body: "Build ${{ github.run_number }}"
+          files: android/app/build/outputs/apk/debug/*.apk
+          fail_on_unmatched_files: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
