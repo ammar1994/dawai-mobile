@@ -1,7 +1,7 @@
 name: 🏗️ Build DAWAI APK
 
 on:
-  workflow_dispatch:          # تشغيل يدوي بضغطة زر
+  workflow_dispatch:
   push:
     branches: [ main, master ]
 
@@ -21,6 +21,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       # ─── 3. Java 17 ────────────────────────────────────────
       - name: ☕ Setup Java 17
@@ -31,17 +32,19 @@ jobs:
 
       # ─── 4. npm install ────────────────────────────────────
       - name: 📦 Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # ─── 4b. Verify critical node_modules ─────────────────
+      - name: 🔍 Verify node_modules
         run: |
-          npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install.log || {
-            echo "❌ Failed. Last 40 lines:"
-            tail -40 /tmp/npm-install.log
-            echo "=== Retrying with --force ==="
-            npm install --force 2>&1 | tee /tmp/npm-force.log || {
-              tail -40 /tmp/npm-force.log
-              exit 1
-            }
-          }
-          echo "✅ Installed OK"
+          if [ ! -d "node_modules/@react-native/gradle-plugin" ]; then
+            echo "❌ @react-native/gradle-plugin غير موجود!"
+            echo "محتوى node_modules/@react-native/:"
+            ls node_modules/@react-native/ 2>/dev/null || echo "المجلد فارغ"
+            exit 1
+          fi
+          echo "✅ @react-native/gradle-plugin موجود"
+          echo "✅ إجمالي الحزم: $(ls node_modules | wc -l)"
 
       # ─── 5. Android SDK ────────────────────────────────────
       - name: 🤖 Setup Android SDK
@@ -58,8 +61,6 @@ jobs:
             "ndk;27.1.12297006"
 
       # ─── 6. google-services.json ───────────────────────────
-      # ⚠️ ضع محتوى google-services.json في GitHub Secret
-      # اسم الـ Secret: GOOGLE_SERVICES_JSON
       - name: 🔥 Setup Firebase (google-services.json)
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
@@ -108,16 +109,17 @@ jobs:
         env:
           JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
         run: |
+          set -e
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          EXIT=${PIPESTATUS[0]}
-          if [ $EXIT -ne 0 ]; then
+          BUILD_EXIT=${PIPESTATUS[0]}
+          if [ $BUILD_EXIT -ne 0 ]; then
             echo "❌ BUILD FAILED"
             echo "=== ERRORS ==="
             grep -E 'error:|FAILURE|What went wrong|Caused by:' /tmp/build.log | head -50
             echo "=== LAST 80 LINES ==="
             tail -80 /tmp/build.log
-            exit $EXIT
+            exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
