@@ -31,7 +31,17 @@ jobs:
 
       # ─── 4. npm install ────────────────────────────────────
       - name: 📦 Install dependencies
-        run: npm install --legacy-peer-deps
+        run: |
+          npm install --legacy-peer-deps 2>&1 | tee /tmp/npm-install.log || {
+            echo "❌ Failed. Last 40 lines:"
+            tail -40 /tmp/npm-install.log
+            echo "=== Retrying with --force ==="
+            npm install --force 2>&1 | tee /tmp/npm-force.log || {
+              tail -40 /tmp/npm-force.log
+              exit 1
+            }
+          }
+          echo "✅ Installed OK"
 
       # ─── 5. Android SDK ────────────────────────────────────
       - name: 🤖 Setup Android SDK
