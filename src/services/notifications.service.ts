@@ -1,142 +1,180 @@
 /**
- * Push & Local Notifications Service
- * Uses @notifee/react-native for local notifications (medicine reminders).
- * For remote push (order status updates), FCM token is sent to backend via /v1/mobile/push-token.
- *
- * Setup required:
- *   iOS:  Add NSUserNotificationUsageDescription to Info.plist
- *   Android: NotificationPermission already granted on API 32-
- *            API 33+ requires POST_NOTIFICATIONS permission
+ * notifications.service.ts
+ * يتعامل مع:
+ *  - Firebase Cloud Messaging (FCM) — Push من الـ Backend
+ *  - Notifee v9 — إشعارات التذكيرات المحلية
  */
 
+import notifee, {
+  AndroidImportance,
+  RepeatFrequency,
+  TimestampTrigger,
+  TriggerType,
+} from '@notifee/react-native';
+import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
-import { remindersService } from './reminders.service';
+import type { Reminder } from '../types';
 
-// Lazy-import notifee so the app doesn't crash if the package isn't linked yet
-let notifee: any = null;
-let AndroidImportance: any = null;
-let TriggerType: any = null;
-let RepeatFrequency: any = null;
+// ─── Channel IDs ────────────────────────────────────────────────────────────
+const CHANNEL_REMINDERS = 'dawai_reminders';
+const CHANNEL_ORDERS    = 'dawai_orders';
 
-async function getNotifee() {
-  if (!notifee) {
-    try {
-      const mod = require('@notifee/react-native');
-      notifee             = mod.default;
-      AndroidImportance   = mod.AndroidImportance;
-      TriggerType         = mod.TriggerType;
-      RepeatFrequency     = mod.RepeatFrequency;
-    } catch {
-      console.warn('[Notifee] Package not linked — local notifications disabled');
-    }
-  }
-  return notifee;
-}
+// ─── إعداد القنوات (يُستدعى مرة واحدة عند بدء التطبيق) ────────────────────
+export async function setupNotificationChannels(): Promise<void> {
+  if (Platform.OS !== 'android') return;
 
-// ─── Request Permission ───────────────────────────────────────────────────────
-export async function requestNotificationPermission(): Promise<boolean> {
-  const n = await getNotifee();
-  if (!n) return false;
-  const settings = await n.requestPermission();
-  return settings.authorizationStatus >= 1; // AUTHORIZED or PROVISIONAL
-}
+  await notifee.createChannel({
+    id         : CHANNEL_REMINDERS,
+    name       : 'تذكيرات الدواء',
+    importance : AndroidImportance.HIGH,
+    vibration  : true,
+    sound      : 'default',
+  });
 
-// ─── Create default channel (Android) ────────────────────────────────────────
-async function ensureChannel() {
-  const n = await getNotifee();
-  if (!n || Platform.OS !== 'android') return 'default';
-  return n.createChannel({
-    id:         'reminders',
-    name:       'تذكيرات الدواء',
-    importance: AndroidImportance?.HIGH ?? 4,
-    sound:      'default',
-    vibration:  true,
+  await notifee.createChannel({
+    id         : CHANNEL_ORDERS,
+    name       : 'تحديثات الطلبات',
+    importance : AndroidImportance.HIGH,
+    vibration  : true,
+    sound      : 'default',
   });
 }
 
-// ─── Schedule one reminder notification ──────────────────────────────────────
-export async function scheduleReminderNotification(opts: {
-  id: string;
-  medicineName: string;
-  dosage: string;
-  time: string; // "HH:MM"
-}) {
-  const n = await getNotifee();
-  if (!n) return;
+// ─── طلب الإذن ──────────────────────────────────────────────────────────────
+export async function requestPermission(): Promise<boolean> {
+  const authStatus = await messaging().requestPermission();
+  const enabled =
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-  const channelId = await ensureChannel();
-  const [h, m] = opts.time.split(':').map(Number);
-
-  const now   = new Date();
-  const trigger = new Date();
-  trigger.setHours(h, m, 0, 0);
-  if (trigger <= now) trigger.setDate(trigger.getDate() + 1); // next occurrence
-
-  await n.createTriggerNotification(
-    {
-      id:    `${opts.id}_${opts.time.replace(':', '')}`,
-      title: `💊 حان وقت ${opts.medicineName}`,
-      body:  `الجرعة: ${opts.dosage}`,
-      android: { channelId, pressAction: { id: 'default' }, sound: 'default' },
-      ios:     { sound: 'default' },
-    },
-    {
-      type:      TriggerType?.TIMESTAMP ?? 0,
-      timestamp: trigger.getTime(),
-      repeatFrequency: RepeatFrequency?.DAILY ?? 1, // DAILY Enum — ليس أسبوعياً
-    },
-  );
-}
-
-// ─── Cancel a reminder's notifications ───────────────────────────────────────
-export async function cancelReminderNotifications(reminderId: string, times: string[]) {
-  const n = await getNotifee();
-  if (!n) return;
-  for (const t of times) {
-    await n.cancelTriggerNotification(`${reminderId}_${t.replace(':', '')}`).catch(() => {});
+  if (enabled && Platform.OS === 'android') {
+    await notifee.requestPermission();
   }
+
+  return enabled;
 }
 
-// ─── Schedule all active reminders on app launch ──────────────────────────────
-export async function scheduleAllReminders() {
+// ─── الحصول على FCM Token ────────────────────────────────────────────────────
+export async function getFCMToken(): Promise<string | null> {
   try {
-    const reminders = await remindersService.list();
-    for (const r of reminders) {
-      if (!r.isActive) continue;
-      for (const t of r.times) {
-        await scheduleReminderNotification({
-          id: r.id, medicineName: r.medicineName, dosage: r.dosage, time: t,
-        });
-      }
-    }
-  } catch (e) {
-    console.warn('[Notifications] Failed to schedule reminders:', e);
+    const token = await messaging().getToken();
+    return token;
+  } catch {
+    return null;
   }
 }
 
-// ─── Display immediate notification (e.g. order status change) ───────────────
-export async function showOrderStatusNotification(opts: {
-  orderId: string;
-  status:  string;
-  pharmacyName: string;
-}) {
-  const n = await getNotifee();
-  if (!n) return;
+// ─── معالجة الإشعارات عند فتح التطبيق (Foreground) ─────────────────────────
+export function setupForegroundHandler(): () => void {
+  // Firebase foreground
+  const unsubscribeFCM = messaging().onMessage(async remoteMessage => {
+    const { notification, data } = remoteMessage;
+    if (!notification) return;
 
-  const channelId = await ensureChannel();
-  const STATUS_MESSAGES: Record<string, string> = {
-    RECEIVED:         '✅ الصيدلية استلمت طلبك',
-    PREPARING:        '⚗️ جاري تجهيز طلبك',
-    READY:            '🎉 طلبك جاهز!',
-    OUT_FOR_DELIVERY: '🛵 المندوب في الطريق إليك',
-    DELIVERED:        '✅ تم توصيل طلبك بنجاح',
-    CANCELLED:        '❌ تم إلغاء الطلب',
-  };
-
-  await n.displayNotification({
-    id:    `order_${opts.orderId}`,
-    title: opts.pharmacyName,
-    body:  STATUS_MESSAGES[opts.status] ?? `حالة الطلب: ${opts.status}`,
-    android: { channelId, pressAction: { id: 'default' } },
+    await notifee.displayNotification({
+      title  : notification.title ?? 'دوائي',
+      body   : notification.body  ?? '',
+      android: {
+        channelId : CHANNEL_ORDERS,
+        smallIcon : 'ic_notification',
+        pressAction: { id: 'default' },
+        extras: data as Record<string, string>,
+      },
+    });
   });
+
+  // Notifee foreground events
+  const unsubscribeNotifee = notifee.onForegroundEvent(({ type, detail }) => {
+    // يمكن معالجة أحداث الضغط هنا إذا لزم
+    void type;
+    void detail;
+  });
+
+  return () => {
+    unsubscribeFCM();
+    unsubscribeNotifee();
+  };
+}
+
+// ─── Deep link عند فتح الإشعار من الـ Background/Quit ──────────────────────
+export function handleNotificationOpen(
+  navigate: (screen: string, params?: object) => void,
+): void {
+  // عند فتح التطبيق من إشعار (Quit state)
+  messaging()
+    .getInitialNotification()
+    .then(remoteMessage => {
+      if (remoteMessage?.data?.type === 'ORDER_STATUS_UPDATED') {
+        const orderId = remoteMessage.data.orderId as string;
+        if (orderId) navigate('OrderDetail', { orderId });
+      }
+    });
+
+  // عند الضغط على إشعار (Background state)
+  messaging().onNotificationOpenedApp(remoteMessage => {
+    if (remoteMessage?.data?.type === 'ORDER_STATUS_UPDATED') {
+      const orderId = remoteMessage.data.orderId as string;
+      if (orderId) navigate('OrderDetail', { orderId });
+    }
+  });
+}
+
+// ─── جدولة إشعارات تذكير الدواء ─────────────────────────────────────────────
+// ⚠️ RepeatFrequency.DAILY = 0 وليس 1
+export async function scheduleReminderNotifications(reminder: Reminder): Promise<void> {
+  // أولاً: احذف الإشعارات القديمة لهذا التذكير
+  await cancelReminderNotifications(reminder.id);
+
+  if (!reminder.isActive) return;
+
+  for (let i = 0; i < reminder.times.length; i++) {
+    const time = reminder.times[i];
+    const [hours, minutes] = time.split(':').map(Number);
+
+    // تحديد وقت أول إشعار (اليوم أو الغد إن مضى الوقت)
+    const trigger = new Date();
+    trigger.setHours(hours, minutes, 0, 0);
+    if (trigger.getTime() <= Date.now()) {
+      trigger.setDate(trigger.getDate() + 1);
+    }
+
+    const timestampTrigger: TimestampTrigger = {
+      type      : TriggerType.TIMESTAMP,
+      timestamp : trigger.getTime(),
+      repeatFrequency: RepeatFrequency.DAILY, // = 0
+    };
+
+    await notifee.createTriggerNotification(
+      {
+        id     : `reminder_${reminder.id}_${i}`,
+        title  : `💊 ${reminder.medicineName}`,
+        body   : `حان وقت جرعة ${reminder.dosage} — ${time}`,
+        android: {
+          channelId   : CHANNEL_REMINDERS,
+          smallIcon   : 'ic_notification',
+          pressAction : { id: 'default' },
+          importance  : AndroidImportance.HIGH,
+        },
+      },
+      timestampTrigger,
+    );
+  }
+}
+
+// ─── إلغاء إشعارات تذكير محدد ───────────────────────────────────────────────
+export async function cancelReminderNotifications(reminderId: string): Promise<void> {
+  const triggers = await notifee.getTriggerNotificationIds();
+  const toCancel = triggers.filter(id => id.startsWith(`reminder_${reminderId}_`));
+  if (toCancel.length > 0) {
+    await notifee.cancelTriggerNotifications(toCancel);
+  }
+}
+
+// ─── إلغاء جميع إشعارات التذكيرات ──────────────────────────────────────────
+export async function cancelAllReminderNotifications(): Promise<void> {
+  const triggers = await notifee.getTriggerNotificationIds();
+  const toCancel = triggers.filter(id => id.startsWith('reminder_'));
+  if (toCancel.length > 0) {
+    await notifee.cancelTriggerNotifications(toCancel);
+  }
 }

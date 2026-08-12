@@ -1,64 +1,86 @@
-name: Build DAWAI APK
+name: 🏗️ Build DAWAI APK
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:          # تشغيل يدوي بضغطة زر
   push:
-    branches: [main]
+    branches: [ main, master ]
 
 jobs:
   build:
+    name: Build Debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
-      - name: Checkout
+      # ─── 1. Checkout ───────────────────────────────────────
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      # ─── 2. Node 20 ────────────────────────────────────────
+      - name: ⚙️ Setup Node 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
-      - name: Setup Java 17
-        uses: actions/setup-java@v5
+      # ─── 3. Java 17 ────────────────────────────────────────
+      - name: ☕ Setup Java 17
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: temurin
 
-      - name: Install Node deps
+      # ─── 4. npm install ────────────────────────────────────
+      - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Dump react-native config
-        run: |
-          npx react-native config > /tmp/rn-config.json 2>/tmp/rn-config-err.txt || true
-          echo '=== Android packages found by autolinking ==='
-          node -e "
-            const cfg = require('/tmp/rn-config.json');
-            const deps = cfg.dependencies || {};
-            Object.entries(deps).forEach(([name, info]) => {
-              const android = (info.platforms || {}).android;
-              if (android) console.log(name + ': ' + (android.sourceDir || 'NO sourceDir'));
-            });
-          " 2>/dev/null || echo 'config parse failed'
-          echo '=== Errors ==='
-          cat /tmp/rn-config-err.txt | head -20
-
-      - name: Setup Android SDK
+      # ─── 5. Android SDK ────────────────────────────────────
+      - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
 
-      - name: Install SDK packages
+      - name: 📱 Install SDK packages
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
+          sdkmanager \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.1.12297006"
 
-      - name: Copy vector-icons fonts
+      # ─── 6. google-services.json ───────────────────────────
+      # ⚠️ ضع محتوى google-services.json في GitHub Secret
+      # اسم الـ Secret: GOOGLE_SERVICES_JSON
+      - name: 🔥 Setup Firebase (google-services.json)
+        run: |
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+            echo "✅ google-services.json من Secret"
+          else
+            echo "⚠️ GOOGLE_SERVICES_JSON secret غير موجود — يستخدم الـ placeholder"
+          fi
+
+      # ─── 7. Google Maps API Key ────────────────────────────
+      - name: 🗺️ Setup Maps API Key
+        run: |
+          if [ -n "${{ secrets.MAPS_API_KEY }}" ]; then
+            sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' \
+              android/app/src/main/AndroidManifest.xml
+            echo "✅ Maps API Key تم تطبيقه"
+          else
+            echo "⚠️ MAPS_API_KEY secret غير موجود — الخريطة لن تعمل"
+          fi
+
+      # ─── 8. Vector Icons Fonts ─────────────────────────────
+      - name: 🔤 Copy vector-icons fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
-          cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
+            android/app/src/main/assets/fonts/ 2>/dev/null || true
+          echo "✅ Fonts: $(ls android/app/src/main/assets/fonts/ | wc -l) ملف"
 
-      - name: Create keystore
+      # ─── 9. Keystore ───────────────────────────────────────
+      - name: 🔑 Create Debug Keystore
         run: |
           keytool -genkeypair -v \
             -keystore android/app/debug.keystore \
@@ -67,31 +89,48 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Create local.properties
+      # ─── 10. local.properties ──────────────────────────────
+      - name: 🛠️ Create local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Build Debug APK
+      # ─── 11. Build APK ─────────────────────────────────────
+      - name: 🏗️ Build Debug APK
         working-directory: android
+        env:
+          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           EXIT=${PIPESTATUS[0]}
           if [ $EXIT -ne 0 ]; then
-            echo '=== PackageList.java ==='
-            find . -name 'PackageList.java' -exec cat {} \;
-            echo '=== ERRORS ==='
+            echo "❌ BUILD FAILED"
+            echo "=== ERRORS ==="
             grep -E 'error:|FAILURE|What went wrong|Caused by:' /tmp/build.log | head -50
-            echo '=== LAST 100 LINES ==='
-            tail -100 /tmp/build.log
+            echo "=== LAST 80 LINES ==="
+            tail -80 /tmp/build.log
             exit $EXIT
           fi
-        env:
-          JAVA_TOOL_OPTIONS: "-Xmx4g -XX:MaxMetaspaceSize=512m"
+          echo "✅ BUILD SUCCESS"
+          ls -lh app/build/outputs/apk/debug/
 
-      - name: Upload APK
+      # ─── 12. Upload APK ────────────────────────────────────
+      - name: 📤 Upload APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: DawaiApp-debug-${{ github.run_number }}
+          name: DAWAI-debug-v${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      # ─── 13. Summary ───────────────────────────────────────
+      - name: 📊 Build Summary
+        if: always()
+        run: |
+          echo "## نتيجة البناء" >> $GITHUB_STEP_SUMMARY
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+            echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "📥 حمّل الـ APK من تبويب **Artifacts** في الأعلى" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **فشل البناء** — راجع الـ logs" >> $GITHUB_STEP_SUMMARY
+          fi

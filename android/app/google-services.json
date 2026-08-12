@@ -1,0 +1,36 @@
+{
+  "_INSTRUCTIONS": "استبدل هذا الملف بالكامل بملف google-services.json الحقيقي من Firebase Console",
+  "_STEPS": [
+    "1. اذهب إلى https://console.firebase.google.com",
+    "2. أنشئ مشروعاً جديداً أو استخدم موجوداً",
+    "3. أضف تطبيق Android بـ package name: com.dawaiapp",
+    "4. حمّل google-services.json وضعه هنا",
+    "5. فعّل Firebase Cloud Messaging في المشروع"
+  ],
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "dawai-placeholder",
+    "storage_bucket": "dawai-placeholder.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+        "android_client_info": {
+          "package_name": "com.dawaiapp"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_REAL_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

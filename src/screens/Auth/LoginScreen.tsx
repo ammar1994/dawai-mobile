@@ -1,111 +1,96 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Toast from 'react-native-toast-message';
 import LinearGradient from 'react-native-linear-gradient';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Button } from '../../components/common/Button';
-import { Input } from '../../components/common/Input';
+import { Colors, FontSize, FontWeight, Spacing, Radius } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
-import { Colors, Typography, Spacing, Radius } from '../../theme';
-import type { AuthStackParamList } from '../../types';
+import { isValidEmail } from '../../utils/validation';
+import type { AuthStackParamList, RootStackParamList } from '../../types';
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
+type Nav = NativeStackNavigationProp<AuthStackParamList & RootStackParamList>;
 
-export const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const [email, setEmail]       = useState('');
+export function LoginScreen() {
+  const navigation  = useNavigation<Nav>();
+  const login       = useAuthStore(s => s.login);
+  const isLoading   = useAuthStore(s => s.isLoading);
+
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [errors, setErrors]     = useState<{ email?: string; password?: string }>({});
 
-  const { login, isLoading, error, clearError } = useAuthStore();
-
-  const validate = () => {
-    const e: typeof errors = {};
-    if (!email.trim())    e.email    = 'البريد الإلكتروني مطلوب';
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'بريد إلكتروني غير صحيح';
-    if (!password)        e.password = 'كلمة المرور مطلوبة';
-    else if (password.length < 6) e.password = 'كلمة المرور 6 أحرف على الأقل';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleLogin = async () => {
-    clearError();
-    if (!validate()) return;
-    try {
-      await login({ email: email.trim().toLowerCase(), password });
-      // Navigation handled automatically by RootNavigator watching isAuthenticated
-    } catch {
-      // error displayed from store
+  async function handleLogin() {
+    if (!isValidEmail(email)) {
+      Toast.show({ type: 'error', text1: 'بريد إلكتروني غير صحيح' });
+      return;
     }
-  };
+    if (password.length < 6) {
+      Toast.show({ type: 'error', text1: 'كلمة المرور قصيرة جداً' });
+      return;
+    }
+    try {
+      await login({ email: email.trim(), password });
+      // auth store يغير isAuthenticated → RootNavigator يعيد التوجيه
+    } catch (err: any) {
+      Toast.show({
+        type  : 'error',
+        text1 : 'فشل تسجيل الدخول',
+        text2 : err?.response?.data?.message ?? 'تحقق من بياناتك',
+      });
+    }
+  }
 
   return (
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" backgroundColor={Colors.secondary} />
-
-      {/* Header gradient */}
-      <LinearGradient
-        colors={['#1A1A2E', '#2D1040']}
-        style={styles.header}
-      >
-        <Text style={styles.logoEn}>DAWAI</Text>
-        <Text style={styles.logoAr}>دوائي</Text>
-        <Text style={styles.tagline}>القلب والعلاج</Text>
-      </LinearGradient>
-
-      {/* Form card */}
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>
-          <Text style={styles.title}>تسجيل الدخول</Text>
-          <Text style={styles.subtitle}>أهلاً بعودتك 👋</Text>
+        {/* Header */}
+        <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.header}>
+          <Text style={styles.emoji}>💊</Text>
+          <Text style={styles.appName}>دوائي</Text>
+          <Text style={styles.subtitle}>أهلاً بعودتك</Text>
+        </LinearGradient>
 
-          {/* API error */}
-          {error && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorBoxText}>{error}</Text>
-            </View>
-          )}
-
-          <Input
-            label="البريد الإلكتروني"
-            placeholder="example@email.com"
+        {/* Form */}
+        <View style={styles.form}>
+          <Text style={styles.label}>البريد الإلكتروني</Text>
+          <TextInput
+            style={styles.input}
             value={email}
             onChangeText={setEmail}
+            placeholder="example@email.com"
+            placeholderTextColor={Colors.textHint}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            error={errors.email}
+            textAlign="right"
           />
 
-          <Input
-            label="كلمة المرور"
-            placeholder="••••••••"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPass}
-            error={errors.password}
-            rightIcon={
+          <Text style={styles.label}>كلمة المرور</Text>
+          <View style={styles.passRow}>
+            <TextInput
+              style={[styles.input, styles.passInput]}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              placeholderTextColor={Colors.textHint}
+              secureTextEntry={!showPass}
+              textAlign="right"
+            />
+            <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
               <Text style={styles.eyeIcon}>{showPass ? '🙈' : '👁️'}</Text>
-            }
-            onRightIconPress={() => setShowPass(v => !v)}
-          />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             onPress={() => navigation.navigate('ForgotPassword')}
@@ -114,141 +99,90 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.forgotText}>نسيت كلمة المرور؟</Text>
           </TouchableOpacity>
 
-          <Button
-            title="تسجيل الدخول"
+          <TouchableOpacity
+            style={[styles.loginBtn, isLoading && styles.btnDisabled]}
             onPress={handleLogin}
-            loading={isLoading}
-            style={styles.loginBtn}
-          />
+            disabled={isLoading}
+            activeOpacity={0.85}
+          >
+            {isLoading
+              ? <ActivityIndicator color={Colors.white} />
+              : <Text style={styles.loginBtnText}>تسجيل الدخول</Text>
+            }
+          </TouchableOpacity>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>أو</Text>
-            <View style={styles.dividerLine} />
+          <View style={styles.registerRow}>
+            <Text style={styles.registerText}>ليس لديك حساب؟ </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.registerLink}>أنشئ حساباً</Text>
+            </TouchableOpacity>
           </View>
-
-          <Button
-            title="إنشاء حساب جديد"
-            onPress={() => navigation.navigate('Register')}
-            variant="outline"
-          />
-
-          <Text style={styles.terms}>
-            بتسجيل الدخول، أنت توافق على{' '}
-            <Text style={styles.termsLink}>شروط الاستخدام</Text>
-            {' و'}
-            <Text style={styles.termsLink}> سياسة الخصوصية</Text>
-          </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    paddingTop: 60,
-    paddingBottom: Spacing.xxl,
-    alignItems: 'center',
+  flex    : { flex: 1, backgroundColor: Colors.background },
+  scroll  : { flexGrow: 1 },
+  header  : {
+    alignItems    : 'center',
+    paddingTop    : 72,
+    paddingBottom : Spacing.xxl,
   },
-  logoEn: {
-    fontSize: Typography.xxl,
-    fontWeight: '900',
-    color: Colors.white,
-    letterSpacing: 8,
+  emoji   : { fontSize: 48, marginBottom: Spacing.sm },
+  appName : { color: Colors.white, fontSize: FontSize.xxl, fontWeight: FontWeight.bold },
+  subtitle: { color: 'rgba(255,255,255,0.8)', fontSize: FontSize.md, marginTop: Spacing.xs },
+  form    : {
+    flex           : 1,
+    backgroundColor: Colors.surface,
+    borderTopStartRadius: Radius.xl,
+    borderTopEndRadius  : Radius.xl,
+    marginTop      : -Radius.xl,
+    padding        : Spacing.lg,
+    paddingTop     : Spacing.xl,
   },
-  logoAr: {
-    fontSize: Typography.md,
-    color: Colors.accent,
-    letterSpacing: 4,
-    marginTop: 2,
+  label   : {
+    color        : Colors.textPrimary,
+    fontSize     : FontSize.sm,
+    fontWeight   : FontWeight.medium,
+    marginBottom : Spacing.xs,
+    textAlign    : 'right',
   },
-  tagline: {
-    fontSize: Typography.sm,
-    color: 'rgba(255,255,255,0.4)',
-    marginTop: Spacing.sm,
-    letterSpacing: 2,
+  input   : {
+    backgroundColor : Colors.surfaceAlt,
+    borderRadius    : Radius.md,
+    borderWidth     : 1,
+    borderColor     : Colors.border,
+    paddingHorizontal: Spacing.md,
+    paddingVertical : Spacing.sm + 2,
+    fontSize        : FontSize.md,
+    color           : Colors.textPrimary,
+    marginBottom    : Spacing.md,
+    textAlign       : 'right',
   },
-  scroll: { flex: 1 },
-  scrollContent: {
-    padding: Spacing.base,
-    paddingTop: Spacing.xxl,
+  passRow  : { position: 'relative' },
+  passInput: { paddingEnd: 52 },
+  eyeBtn   : { position: 'absolute', end: Spacing.md, top: 10 },
+  eyeIcon  : { fontSize: 20 },
+  forgotBtn: { alignSelf: 'flex-start', marginBottom: Spacing.lg },
+  forgotText: { color: Colors.primary, fontSize: FontSize.sm, fontWeight: FontWeight.medium },
+  loginBtn : {
+    backgroundColor : Colors.primary,
+    borderRadius    : Radius.md,
+    paddingVertical : Spacing.md,
+    alignItems      : 'center',
+    marginBottom    : Spacing.lg,
+    elevation       : 3,
+    shadowColor     : Colors.primary,
+    shadowOffset    : { width: 0, height: 3 },
+    shadowOpacity   : 0.3,
+    shadowRadius    : 6,
   },
-  card: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
-    shadowColor: Colors.secondary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  title: {
-    fontSize: Typography.xl,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    textAlign: 'right',
-    marginBottom: Spacing.xs,
-  },
-  subtitle: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-    textAlign: 'right',
-    marginBottom: Spacing.xl,
-  },
-  errorBox: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.error,
-  },
-  errorBoxText: {
-    color: Colors.error,
-    fontSize: Typography.sm,
-    textAlign: 'right',
-  },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginTop: -Spacing.xs,
-    marginBottom: Spacing.lg,
-  },
-  forgotText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: '500',
-  },
-  loginBtn: {
-    marginBottom: Spacing.lg,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    fontSize: Typography.sm,
-    color: Colors.textHint,
-    marginHorizontal: Spacing.md,
-  },
-  terms: {
-    fontSize: Typography.xs,
-    color: Colors.textHint,
-    textAlign: 'center',
-    marginTop: Spacing.lg,
-    lineHeight: 20,
-  },
-  termsLink: {
-    color: Colors.primary,
-    fontWeight: '500',
-  },
-  eyeIcon: { fontSize: 18 },
+  btnDisabled   : { opacity: 0.65 },
+  loginBtnText  : { color: Colors.white, fontSize: FontSize.md, fontWeight: FontWeight.bold },
+  registerRow   : { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  registerText  : { color: Colors.textSecondary, fontSize: FontSize.sm },
+  registerLink  : { color: Colors.primary, fontSize: FontSize.sm, fontWeight: FontWeight.bold },
 });

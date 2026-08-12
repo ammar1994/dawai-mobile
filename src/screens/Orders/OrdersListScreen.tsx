@@ -1,96 +1,112 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, TouchableOpacity,
-  ActivityIndicator, RefreshControl,
+  View, Text, FlatList, TouchableOpacity,
+  StyleSheet, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Toast from 'react-native-toast-message';
+import { Colors, FontSize, FontWeight, Spacing, Radius } from '../../theme';
 import { useOrdersStore } from '../../store/orders.store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
-import type { Order, OrdersStackParamList } from '../../types';
+import { formatDate, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../../utils/format';
+import type { Order } from '../../types';
 
-type Nav = NativeStackNavigationProp<OrdersStackParamList, 'OrdersList'>;
-
-// ─── Status Config ────────────────────────────────────────────────────────────
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  PENDING:          { label: 'بانتظار التأكيد', color: Colors.warning,  icon: '⏳' },
-  RECEIVED:         { label: 'تم الاستلام',    color: Colors.info,     icon: '✅' },
-  PREPARING:        { label: 'قيد التجهيز',    color: Colors.primary,  icon: '⚗️' },
-  READY:            { label: 'جاهز للاستلام',  color: Colors.success,  icon: '🎉' },
-  OUT_FOR_DELIVERY: { label: 'في الطريق',      color: Colors.info,     icon: '🛵' },
-  DELIVERED:        { label: 'تم التسليم',     color: Colors.success,  icon: '✅' },
-  CANCELLED:        { label: 'ملغي',           color: Colors.error,    icon: '❌' },
-};
-
-// ─── Order Card ───────────────────────────────────────────────────────────────
-function OrderCard({ order, onPress }: { order: Order; onPress: () => void }) {
-  const cfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: Colors.textHint, icon: '📦' };
-  const date = new Date(order.createdAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
-
-  return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
-      <View style={styles.cardHeader}>
-        <View style={[styles.statusBadge, { backgroundColor: cfg.color + '20' }]}>
-          <Text style={styles.statusIcon}>{cfg.icon}</Text>
-          <Text style={[styles.statusLabel, { color: cfg.color }]}>{cfg.label}</Text>
-        </View>
-        <Text style={styles.date}>{date}</Text>
-      </View>
-
-      <Text style={styles.orderId}>#{order.id.slice(-6).toUpperCase()}</Text>
-      <Text style={styles.pharmacyName}>{order.branch?.name ?? order.pharmacyName ?? 'الصيدلية'}</Text>
-
-      <View style={styles.cardFooter}>
-        <Text style={styles.itemCount}>{(order.items?.length ?? 0)} منتج</Text>
-        <Text style={styles.total}>
-          {order.totalAmount > 0 ? `${order.totalAmount.toFixed(2)} ج.م` : 'سيتم التحديد'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Screen ───────────────────────────────────────────────────────────────────
 export function OrdersListScreen() {
-  const nav = useNavigation<Nav>();
-  const { orders, isLoading, fetchOrders } = useOrdersStore();
+  const navigation = useNavigation<any>();
+  const { orders, isLoading, fetchOrders, clearCart, addToCart } = useOrdersStore();
 
   useEffect(() => { fetchOrders(); }, []);
 
-  const onRefresh = useCallback(() => { fetchOrders(); }, []);
+  // ─── إعادة الطلب ♻️ ─────────────────────────────────────
+  function handleReorder(order: Order) {
+    if (!order.items || order.items.length === 0) {
+      Toast.show({ type: 'info', text1: 'الطلب لا يحتوي على أصناف' });
+      return;
+    }
 
-  if (isLoading && orders.length === 0) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+    Alert.alert(
+      'إعادة الطلب ♻️',
+      `إضافة ${order.items.length} صنف من طلب "${order.branch.name}" للسلة؟`,
+      [
+        { text: 'إلغاء' },
+        {
+          text    : 'نعم، أعد الطلب',
+          onPress : () => {
+            clearCart();
+            order.items.forEach(item => {
+              addToCart({ medicineName: item.medicineName, quantity: item.quantity });
+            });
+            Toast.show({ type: 'success', text1: '✅ تمت إضافة الأصناف للسلة' });
+            navigation.navigate('Cart', { pharmacyId: order.branch.id });
+          },
+        },
+      ],
     );
   }
 
+  // ─── بطاقة الطلب ─────────────────────────────────────────
+  function renderItem({ item }: { item: Order }) {
+    const color    = ORDER_STATUS_COLOR[item.status];
+    const isDone   = item.status === 'DELIVERED' || item.status === 'CANCELLED';
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+        activeOpacity={0.85}
+      >
+        {/* الصف العلوي: الحالة + اسم الصيدلية */}
+        <View style={styles.cardTop}>
+          <View style={[styles.badge, { backgroundColor: color + '22' }]}>
+            <Text style={[styles.badgeText, { color }]}>{ORDER_STATUS_LABEL[item.status]}</Text>
+          </View>
+          <Text style={styles.branchName} numberOfLines={1}>{item.branch.name}</Text>
+        </View>
+
+        {/* الصف السفلي: التاريخ + عدد الأصناف + زر إعادة */}
+        <View style={styles.cardBottom}>
+          {/* زر ♻️ إعادة الطلب — يظهر فقط للطلبات المكتملة أو الملغاة */}
+          {isDone && (
+            <TouchableOpacity
+              style={styles.reorderBtn}
+              onPress={() => handleReorder(item)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.reorderText}>♻️ إعادة</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.itemCount}>
+            {item.items.length} {item.items.length === 1 ? 'صنف' : 'أصناف'}
+          </Text>
+          <Text style={styles.date}>{formatDate(item.createdAt)}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  // ─── Render ──────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>طلباتي</Text>
-        <Text style={styles.subtitle}>{orders.length} طلب</Text>
       </View>
 
       <FlatList
         data={orders}
-        keyExtractor={o => o.id}
-        renderItem={({ item }) => (
-          <OrderCard
-            order={item}
-            onPress={() => nav.navigate('OrderTracking', { orderId: item.id })}
-          />
-        )}
-        contentContainerStyle={orders.length === 0 ? styles.emptyContainer : styles.list}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        keyExtractor={i => i.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={fetchOrders} tintColor={Colors.primary} />
+        }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>لا توجد طلبات</Text>
-            <Text style={styles.emptyHint}>اطلب دواءك من أقرب صيدلية</Text>
-          </View>
+          isLoading
+            ? <ActivityIndicator color={Colors.primary} style={{ marginTop: 48 }} />
+            : (
+              <View style={styles.empty}>
+                <Text style={styles.emptyIcon}>📦</Text>
+                <Text style={styles.emptyText}>لا توجد طلبات حتى الآن</Text>
+              </View>
+            )
         }
       />
     </View>
@@ -98,26 +114,69 @@ export function OrdersListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:      { flex: 1, backgroundColor: Colors.background },
-  center:         { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header:         { backgroundColor: Colors.primary, paddingTop: 56, paddingBottom: 20, paddingHorizontal: Spacing.base, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
-  title:          { fontSize: Typography.xl, fontWeight: '700', color: Colors.white },
-  subtitle:       { fontSize: Typography.sm, color: 'rgba(255,255,255,0.8)' },
-  list:           { padding: Spacing.base, gap: Spacing.md },
-  emptyContainer: { flex: 1 },
-  card:           { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: Spacing.base, ...Shadow.sm },
-  cardHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
-  statusBadge:    { flexDirection: 'row', alignItems: 'center', borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 4, gap: 4 },
-  statusIcon:     { fontSize: 13 },
-  statusLabel:    { fontSize: Typography.xs, fontWeight: '600' },
-  date:           { fontSize: Typography.xs, color: Colors.textHint },
-  orderId:        { fontSize: Typography.sm, fontWeight: '700', color: Colors.textSecondary, marginBottom: 2, textAlign: 'right' },
-  pharmacyName:   { fontSize: Typography.md, fontWeight: '600', color: Colors.textPrimary, textAlign: 'right', marginBottom: Spacing.sm },
-  cardFooter:     { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: Colors.borderLight, paddingTop: Spacing.sm },
-  itemCount:      { fontSize: Typography.sm, color: Colors.textSecondary },
-  total:          { fontSize: Typography.base, fontWeight: '700', color: Colors.primary },
-  empty:          { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 120 },
-  emptyIcon:      { fontSize: 64, marginBottom: Spacing.base },
-  emptyTitle:     { fontSize: Typography.lg, fontWeight: '700', color: Colors.textPrimary, marginBottom: Spacing.xs },
-  emptyHint:      { fontSize: Typography.base, color: Colors.textSecondary },
+  container  : { flex: 1, backgroundColor: Colors.background },
+  header     : {
+    paddingTop        : 52,
+    paddingHorizontal : Spacing.md,
+    paddingBottom     : Spacing.md,
+    backgroundColor   : Colors.surface,
+    borderBottomWidth : 1,
+    borderBottomColor : Colors.border,
+  },
+  title      : {
+    fontSize   : FontSize.xl,
+    fontWeight : FontWeight.bold,
+    color      : Colors.textPrimary,
+    textAlign  : 'right',
+  },
+  list       : { padding: Spacing.md, gap: Spacing.sm },
+  card       : {
+    backgroundColor : Colors.surface,
+    borderRadius    : Radius.lg,
+    padding         : Spacing.md,
+    elevation       : 2,
+    shadowColor     : Colors.secondary,
+    shadowOffset    : { width: 0, height: 2 },
+    shadowOpacity   : 0.06,
+    shadowRadius    : 8,
+  },
+  cardTop    : {
+    flexDirection  : 'row',
+    justifyContent : 'space-between',
+    alignItems     : 'center',
+    marginBottom   : Spacing.sm,
+  },
+  branchName : {
+    fontSize   : FontSize.md,
+    fontWeight : FontWeight.semibold,
+    color      : Colors.textPrimary,
+    textAlign  : 'right',
+    flex       : 1,
+    marginStart: Spacing.sm,
+  },
+  badge      : { borderRadius: Radius.full, paddingVertical: 3, paddingHorizontal: 10 },
+  badgeText  : { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+  cardBottom : {
+    flexDirection  : 'row',
+    justifyContent : 'space-between',
+    alignItems     : 'center',
+  },
+  reorderBtn : {
+    backgroundColor : Colors.primaryGlow,
+    borderRadius    : Radius.sm,
+    paddingVertical : 4,
+    paddingHorizontal: Spacing.sm,
+    borderWidth     : 1,
+    borderColor     : Colors.primaryLight,
+  },
+  reorderText: {
+    fontSize   : FontSize.xs,
+    color      : Colors.primary,
+    fontWeight : FontWeight.semibold,
+  },
+  date       : { color: Colors.textHint, fontSize: FontSize.sm },
+  itemCount  : { color: Colors.textSecondary, fontSize: FontSize.sm },
+  empty      : { alignItems: 'center', marginTop: 64 },
+  emptyIcon  : { fontSize: 48, marginBottom: Spacing.md },
+  emptyText  : { color: Colors.textSecondary, fontSize: FontSize.md },
 });

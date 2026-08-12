@@ -1,63 +1,49 @@
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
-export interface Customer {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  createdAt: string;
+// ─── Auth ──────────────────────────────────────────────────────────────────────
+export interface MobileCustomer {
+  id        : string;
+  firstName : string;
+  lastName  : string;
+  email     : string;
+  phone?    : string;
+  isActive  : boolean;
+  createdAt : string;
 }
 
 export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
+  accessToken  : string;
+  refreshToken : string;
+  customer     : MobileCustomer;
 }
 
-export interface LoginRequest {
-  email: string;
-  password: string;
+export interface LoginPayload {
+  email    : string;
+  password : string;
 }
 
-export interface RegisterRequest {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  password: string;
+export interface RegisterPayload {
+  firstName : string;
+  lastName  : string;
+  email     : string;
+  password  : string;
+  phone?    : string;
 }
 
-export interface AuthState {
-  customer: Customer | null;
-  tokens: AuthTokens | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-}
-
-// ─── Pharmacy ─────────────────────────────────────────────────────────────────
-
+// ─── Pharmacy (Branch) ────────────────────────────────────────────────────────
+// ⚠️ لا يوجد isOpen أو rating في الـ Backend
 export interface Pharmacy {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  lat: number;
-  lng: number;
-  distance?: number;       // meters, filled by backend
-  isOpen: boolean;
-  rating?: number;
-  logo?: string;
-  workingHours?: WorkingHours;
+  id          : string;
+  tenantId    : string;
+  name        : string;
+  address?    : string;
+  phone?      : string;
+  latitude    : number;
+  longitude   : number;
+  isActive    : boolean;
+  distanceKm? : number;           // الحقل الصحيح من الـ API
+  tenant      : { id: string; name: string };
 }
 
-export interface WorkingHours {
-  open: string;   // "08:00"
-  close: string;  // "23:00"
-  days: string[]; // ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
-}
-
-// ─── Orders ───────────────────────────────────────────────────────────────────
-
+// ─── Order ────────────────────────────────────────────────────────────────────
 export type OrderStatus =
   | 'PENDING'
   | 'RECEIVED'
@@ -68,122 +54,134 @@ export type OrderStatus =
   | 'CANCELLED';
 
 export interface OrderItem {
-  medicineId: string;
-  medicineName: string;
-  quantity: number;
-  price: number;
-  requiresPrescription: boolean;
+  id                   : string;
+  medicineName         : string;
+  quantity             : number;
+  price                : number;
+  requiresPrescription : boolean;
 }
 
 export interface Order {
-  id: string;
-  pharmacyId: string;
-  /** اسم الصيدلية — يأتي من الـ API كـ branch.name */
-  pharmacyName: string;
-  branch?: {
-    id: string;
-    name: string;       // المصدر الأصلي من الباك إند
-    address?: string;
-  };
-  customerId: string;
-  items: OrderItem[];
-  status: OrderStatus;
-  totalAmount: number;
-  notes?: string;
+  id                   : string;
+  status               : OrderStatus;
+  notes?               : string;
+  deliveryAddress?     : string;
   prescriptionImageUrl?: string;
-  deliveryAddress?: string;
-  createdAt: string;
-  updatedAt: string;
-  estimatedReadyAt?: string;
+  totalAmount          : number;
+  estimatedReadyAt?    : string;
+  paymentStatus        : 'UNPAID' | 'PAID';
+  paymentIntentId?     : string;
+  createdAt            : string;
+  updatedAt            : string;
+  items                : OrderItem[];
+  branch               : { id: string; name: string; address?: string; phone?: string };
+  customer?            : { id: string; firstName: string; lastName: string; phone?: string };
 }
 
-export interface CreateOrderRequest {
-  pharmacyId: string;
-  items: Omit<OrderItem, 'medicineName' | 'price'>[];
-  notes?: string;
-  deliveryAddress?: string;
+export interface CreateOrderPayload {
+  branchId             : string;
+  items                : { medicineName: string; quantity: number }[];
+  notes?               : string;
+  deliveryAddress?     : string;
   prescriptionImageUrl?: string;
 }
 
-// ─── Reminders ────────────────────────────────────────────────────────────────
+// Cart — frontend only
+export interface CartItem {
+  medicineName : string;
+  quantity     : number;
+}
 
+// ─── Prescription ─────────────────────────────────────────────────────────────
+// ⚠️ لا يوجد حقل status — الحقول: id, imageUrl, notes, uploadedAt
+export interface Prescription {
+  id         : string;
+  imageUrl   : string;
+  notes?     : string;
+  uploadedAt : string;   // الحقل الصحيح (وليس createdAt)
+}
+
+// ─── Reminder ─────────────────────────────────────────────────────────────────
+// ⚠️ times هو String[] (مصفوفة) — dosage مطلوب
 export type ReminderFrequency = 'DAILY' | 'TWICE_DAILY' | 'WEEKLY' | 'CUSTOM';
 
 export interface Reminder {
-  id: string;
-  medicineName: string;
-  dosage: string;
-  frequency: ReminderFrequency;
-  times: string[];    // ["08:00", "20:00"]
-  startDate: string;
-  endDate?: string;
-  isActive: boolean;
-  notes?: string;
+  id           : string;
+  medicineName : string;
+  dosage       : string;          // مطلوب (required)
+  frequency    : ReminderFrequency;
+  times        : string[];        // ["08:00"] أو ["08:00", "20:00"]
+  startDate    : string;
+  endDate?     : string;
+  isActive     : boolean;
+  notes?       : string;
+  createdAt    : string;
 }
 
-export interface CreateReminderRequest {
-  medicineName: string;
-  dosage: string;
-  frequency: ReminderFrequency;
-  times: string[];
-  startDate: string;
-  endDate?: string;
-  notes?: string;
+export interface CreateReminderPayload {
+  medicineName : string;
+  dosage       : string;
+  frequency    : ReminderFrequency;
+  times        : string[];
+  startDate    : string;
+  endDate?     : string;
+  notes?       : string;
 }
 
-// ─── API ──────────────────────────────────────────────────────────────────────
+// ─── Saved Address — frontend only (MMKV) ────────────────────────────────────
+export interface SavedAddress {
+  id    : string;
+  label : 'home' | 'work' | 'other';
+  text  : string;
+}
 
+// ─── API Response wrapper ─────────────────────────────────────────────────────
 export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
+  data?    : T;
+  message? : string;
+  success  : boolean;
 }
 
-export interface ApiError {
-  success: false;
-  code: string;
-  message: string;
-}
-
-export interface PaginatedResponse<T> {
-  success: boolean;
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  hasMore: boolean;
-}
-
-// ─── Navigation ───────────────────────────────────────────────────────────────
-
+// ─── Navigation Params ────────────────────────────────────────────────────────
 export type RootStackParamList = {
-  Splash: undefined;
-  Auth: undefined;
-  Main: undefined;
+  Splash : undefined;
+  Auth   : undefined;
+  Main   : undefined;
 };
 
 export type AuthStackParamList = {
-  Login: undefined;
-  Register: undefined;
-  ForgotPassword: undefined;
+  Login          : undefined;
+  Register       : undefined;
+  ForgotPassword : undefined;
 };
 
 export type MainTabParamList = {
-  Home: undefined;
-  Pharmacies: undefined;
-  Orders: undefined;
-  Reminders: undefined;
-  Profile: undefined;
+  Home          : undefined;
+  Pharmacies    : undefined;
+  Orders        : undefined;
+  Prescriptions : undefined;
+  More          : undefined;
 };
 
-export type PharmacyStackParamList = {
-  PharmacyMap: undefined;
-  PharmacyDetail: { pharmacyId: string };
-  NewOrder: { pharmacyId: string; pharmacyName: string };
+export type PharmaciesStackParamList = {
+  PharmacyList   : undefined;
+  PharmacyMap    : undefined;
+  PharmacyDetail : { pharmacyId: string };
+  Cart           : { pharmacyId: string };
+  NewOrder       : { pharmacyId: string };
 };
 
 export type OrdersStackParamList = {
-  OrdersList: undefined;
-  OrderDetail: { orderId: string };
-  OrderTracking: { orderId: string };
+  OrdersList  : undefined;
+  OrderDetail : { orderId: string };
+  Payment     : { orderId: string };
+};
+
+export type MoreStackParamList = {
+  MoreMenu       : undefined;
+  Reminders      : undefined;
+  MedicineSearch : undefined;
+  Favorites      : undefined;
+  SavedAddresses : undefined;
+  Profile        : undefined;
 };

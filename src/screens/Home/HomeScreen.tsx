@@ -1,212 +1,238 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, StatusBar,
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { useAuthStore } from '../../store/auth.store';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
-import type { RootStackParamList, MainTabParamList } from '../../types';
+import { Colors, FontSize, FontWeight, Spacing, Radius } from '../../theme';
+import { useAuthStore }    from '../../store/auth.store';
+import { usePharmacyStore } from '../../store/pharmacy.store';
+import { useOrdersStore }  from '../../store/orders.store';
+import { getCurrentLocation, requestLocationPermission } from '../../utils/location';
+import { formatDistance, ORDER_STATUS_LABEL, ORDER_STATUS_COLOR } from '../../utils/format';
 
-// HomeScreen عيشة داخل MainNavigator (Tab) الذي نفسه داخل RootNavigator (Stack)
-// CompositeNavigationProp يدمج قدرات التنقل للمستويين
-type HomeNav = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList>,
-  NativeStackNavigationProp<RootStackParamList>
->;
+export function HomeScreen() {
+  const navigation      = useNavigation<any>();
+  const user            = useAuthStore(s => s.user);
+  const { pharmacies, isLoading: pharmLoading, fetchNearby } = usePharmacyStore();
+  const { orders, isLoading: ordersLoading, fetchOrders }    = useOrdersStore();
 
-export const HomeScreen: React.FC = () => {
-  const customer  = useAuthStore(s => s.customer);
-  const navigation = useNavigation<HomeNav>();
+  const isLoading = pharmLoading || ordersLoading;
 
-  const quickActions = [
-    { icon: '🏥', label: 'أقرب صيدلية', color: '#FF4DB8', screen: 'Pharmacies' as const },
-    { icon: '📋', label: 'طلباتي',       color: '#E91E8C', screen: 'Orders'     as const },
-    { icon: '⏰', label: 'تذكير الدواء', color: '#C2156F', screen: 'Reminders'  as const },
-    { icon: '📄', label: 'وصفاتي',       color: '#8B0A5A', screen: 'Profile'    as const },
+  async function loadData() {
+    await fetchOrders();
+    const ok = await requestLocationPermission();
+    if (ok) {
+      try {
+        const { latitude, longitude } = await getCurrentLocation();
+        await fetchNearby(latitude, longitude);
+      } catch { /* GPS unavailable */ }
+    }
+  }
+
+  useEffect(() => { loadData(); }, []);
+
+  const nearestPharmacy = pharmacies.find(p => p.isActive) ?? pharmacies[0];
+  const lastOrder       = orders[0];
+
+  const QUICK_ACTIONS = [
+    { icon: '🏥', label: 'الصيدليات',  onPress: () => navigation.navigate('Pharmacies') },
+    { icon: '📦', label: 'طلباتي',     onPress: () => navigation.navigate('Orders') },
+    { icon: '📄', label: 'الوصفات',    onPress: () => navigation.navigate('Prescriptions') },
+    { icon: '⏰', label: 'تذكيراتي',  onPress: () => navigation.navigate('More', { screen: 'Reminders' }) },
+    { icon: '❤️', label: 'المفضلة',    onPress: () => navigation.navigate('More', { screen: 'Favorites' }) },
+    { icon: '👤', label: 'حسابي',      onPress: () => navigation.navigate('More', { screen: 'Profile' }) },
   ];
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.secondary} />
-
-      <LinearGradient colors={['#1A1A2E', '#2D1040']} style={styles.header}>
-        <View style={styles.headerRow}>
-          <View>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={isLoading} onRefresh={loadData} tintColor={Colors.primary} />
+      }
+    >
+      {/* Greeting Header */}
+      <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.header}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('More', { screen: 'Profile' })}
+            style={styles.avatar}
+          >
+            <Text style={styles.avatarText}>
+              {user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : '؟'}
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.greetBox}>
             <Text style={styles.greeting}>مرحباً 👋</Text>
             <Text style={styles.userName}>
-              {customer?.firstName} {customer?.lastName}
-            </Text>
-          </View>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {customer?.firstName?.[0]}{customer?.lastName?.[0]}
+              {user ? `${user.firstName} ${user.lastName}` : '...'}
             </Text>
           </View>
         </View>
+        <Text style={styles.headerSub}>ماذا تحتاج اليوم؟</Text>
       </LinearGradient>
 
-      <ScrollView
-        style={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: Spacing.xxxl }}
-      >
-        {/* Quick actions */}
-        <Text style={styles.sectionTitle}>ماذا تحتاج اليوم؟</Text>
-        <View style={styles.grid}>
-          {quickActions.map(a => (
-            <TouchableOpacity key={a.label} style={styles.actionCard} activeOpacity={0.8}
-              onPress={() => navigation.navigate(a.screen as never)}>
-              <LinearGradient
-                colors={[a.color + '22', a.color + '11']}
-                style={styles.actionGradient}
-              >
-                <Text style={styles.actionIcon}>{a.icon}</Text>
-                <Text style={styles.actionLabel}>{a.label}</Text>
-              </LinearGradient>
+      {/* Nearest Pharmacy Card */}
+      {nearestPharmacy && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>أقرب صيدلية</Text>
+          <TouchableOpacity
+            style={styles.pharmacyCard}
+            onPress={() => navigation.navigate('Pharmacies', {
+              screen: 'PharmacyDetail',
+              params: { pharmacyId: nearestPharmacy.id },
+            })}
+            activeOpacity={0.85}
+          >
+            <View style={styles.pharmacyInfo}>
+              <View style={[styles.activeDot, { backgroundColor: nearestPharmacy.isActive ? Colors.success : Colors.textHint }]} />
+              <View style={styles.pharmacyText}>
+                <Text style={styles.pharmacyName}>{nearestPharmacy.tenant.name}</Text>
+                <Text style={styles.pharmacyBranch}>{nearestPharmacy.name}</Text>
+                {nearestPharmacy.address && (
+                  <Text style={styles.pharmacyAddress} numberOfLines={1}>{nearestPharmacy.address}</Text>
+                )}
+              </View>
+            </View>
+            <View style={styles.pharmacyRight}>
+              {nearestPharmacy.distanceKm != null && (
+                <Text style={styles.distance}>{formatDistance(nearestPharmacy.distanceKm)}</Text>
+              )}
+              <Text style={styles.arrow}>←</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Last Order */}
+      {lastOrder && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>آخر طلب</Text>
+          <TouchableOpacity
+            style={styles.orderCard}
+            onPress={() => navigation.navigate('Orders', {
+              screen: 'OrderDetail',
+              params: { orderId: lastOrder.id },
+            })}
+            activeOpacity={0.85}
+          >
+            <View style={styles.orderInfo}>
+              <Text style={styles.orderBranch}>{lastOrder.branch.name}</Text>
+              <Text style={styles.orderItems}>
+                {lastOrder.items.length} {lastOrder.items.length === 1 ? 'منتج' : 'منتجات'}
+              </Text>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: ORDER_STATUS_COLOR[lastOrder.status] + '22' }]}>
+              <Text style={[styles.statusText, { color: ORDER_STATUS_COLOR[lastOrder.status] }]}>
+                {ORDER_STATUS_LABEL[lastOrder.status]}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Quick Actions */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>اختصارات</Text>
+        <View style={styles.actionsGrid}>
+          {QUICK_ACTIONS.map(action => (
+            <TouchableOpacity
+              key={action.label}
+              style={styles.actionCard}
+              onPress={action.onPress}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.actionIcon}>{action.icon}</Text>
+              <Text style={styles.actionLabel}>{action.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
-
-        {/* Banner */}
-        <LinearGradient
-          colors={[Colors.primary, Colors.primaryDark]}
-          style={styles.banner}
-        >
-          <Text style={styles.bannerTitle}>اطلب دواءك بسهولة</Text>
-          <Text style={styles.bannerSub}>
-            ابحث عن أقرب صيدلية وأرسل طلبك في ثوانٍ
-          </Text>
-          <TouchableOpacity style={styles.bannerBtn}>
-            <Text style={styles.bannerBtnText}>ابحث الآن ←</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-
-        {/* Coming in part 2/3 */}
-        <Text style={styles.sectionTitle}>آخر الطلبات</Text>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyIcon}>📦</Text>
-          <Text style={styles.emptyText}>لا توجد طلبات بعد</Text>
-          <Text style={styles.emptySubText}>
-            ابدأ بالبحث عن صيدلية قريبة منك
-          </Text>
-        </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    paddingTop: 50,
-    paddingBottom: Spacing.xxl,
-    paddingHorizontal: Spacing.base,
+  container    : { flex: 1, backgroundColor: Colors.background },
+  content      : { paddingBottom: Spacing.xxl },
+  header       : { paddingTop: 52, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl },
+  headerTop    : { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
+  avatar       : {
+    width           : 44,
+    height          : 44,
+    borderRadius    : 22,
+    backgroundColor : 'rgba(255,255,255,0.25)',
+    justifyContent  : 'center',
+    alignItems      : 'center',
+    marginEnd       : Spacing.md,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  avatarText   : { color: Colors.white, fontWeight: FontWeight.bold, fontSize: FontSize.md },
+  greetBox     : { flex: 1, alignItems: 'flex-end' },
+  greeting     : { color: 'rgba(255,255,255,0.8)', fontSize: FontSize.sm },
+  userName     : { color: Colors.white, fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+  headerSub    : { color: 'rgba(255,255,255,0.8)', fontSize: FontSize.md, textAlign: 'right' },
+
+  section      : { marginTop: Spacing.lg, paddingHorizontal: Spacing.md },
+  sectionTitle : { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.textPrimary, marginBottom: Spacing.sm, textAlign: 'right' },
+
+  pharmacyCard : {
+    backgroundColor : Colors.surface,
+    borderRadius    : Radius.lg,
+    padding         : Spacing.md,
+    flexDirection   : 'row',
+    justifyContent  : 'space-between',
+    alignItems      : 'center',
+    elevation       : 2,
+    shadowColor     : Colors.secondary,
+    shadowOffset    : { width: 0, height: 2 },
+    shadowOpacity   : 0.06,
+    shadowRadius    : 8,
   },
-  greeting: { fontSize: Typography.sm, color: 'rgba(255,255,255,0.6)' },
-  userName: {
-    fontSize: Typography.lg,
-    fontWeight: '800',
-    color: Colors.white,
-    textAlign: 'right',
+  pharmacyInfo : { flexDirection: 'row', alignItems: 'flex-start', flex: 1 },
+  activeDot    : { width: 8, height: 8, borderRadius: 4, marginTop: 6, marginEnd: Spacing.sm },
+  pharmacyText : { flex: 1, alignItems: 'flex-end' },
+  pharmacyName : { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.textPrimary, textAlign: 'right' },
+  pharmacyBranch: { fontSize: FontSize.sm, color: Colors.textSecondary, textAlign: 'right' },
+  pharmacyAddress: { fontSize: FontSize.xs, color: Colors.textHint, textAlign: 'right', marginTop: 2 },
+  pharmacyRight: { alignItems: 'center', marginStart: Spacing.sm },
+  distance     : { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.primary },
+  arrow        : { fontSize: FontSize.lg, color: Colors.textHint },
+
+  orderCard    : {
+    backgroundColor : Colors.surface,
+    borderRadius    : Radius.lg,
+    padding         : Spacing.md,
+    flexDirection   : 'row',
+    justifyContent  : 'space-between',
+    alignItems      : 'center',
+    elevation       : 2,
+    shadowColor     : Colors.secondary,
+    shadowOffset    : { width: 0, height: 2 },
+    shadowOpacity   : 0.06,
+    shadowRadius    : 8,
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+  orderInfo    : { alignItems: 'flex-end' },
+  orderBranch  : { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.textPrimary, textAlign: 'right' },
+  orderItems   : { fontSize: FontSize.sm, color: Colors.textSecondary, textAlign: 'right' },
+  statusBadge  : { borderRadius: Radius.full, paddingVertical: 4, paddingHorizontal: 12 },
+  statusText   : { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+
+  actionsGrid  : { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  actionCard   : {
+    backgroundColor : Colors.surface,
+    borderRadius    : Radius.lg,
+    width           : '30.5%',
+    aspectRatio     : 1,
+    justifyContent  : 'center',
+    alignItems      : 'center',
+    elevation       : 2,
+    shadowColor     : Colors.secondary,
+    shadowOffset    : { width: 0, height: 2 },
+    shadowOpacity   : 0.06,
+    shadowRadius    : 8,
   },
-  avatarText: { fontSize: Typography.md, fontWeight: '700', color: Colors.white },
-  scroll: { flex: 1, marginTop: -Spacing.xl },
-  sectionTitle: {
-    fontSize: Typography.md,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    textAlign: 'right',
-    paddingHorizontal: Spacing.base,
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.md,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: Spacing.base,
-    gap: Spacing.md,
-  },
-  actionCard: {
-    width: '47%',
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    backgroundColor: Colors.white,
-    ...Shadow.sm,
-  },
-  actionGradient: {
-    padding: Spacing.lg,
-    alignItems: 'center',
-    minHeight: 100,
-    justifyContent: 'center',
-  },
-  actionIcon: { fontSize: 32, marginBottom: Spacing.sm },
-  actionLabel: {
-    fontSize: Typography.sm,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  banner: {
-    margin: Spacing.base,
-    borderRadius: Radius.xl,
-    padding: Spacing.xl,
-    marginTop: Spacing.xl,
-  },
-  bannerTitle: {
-    fontSize: Typography.lg,
-    fontWeight: '800',
-    color: Colors.white,
-    textAlign: 'right',
-    marginBottom: Spacing.xs,
-  },
-  bannerSub: {
-    fontSize: Typography.sm,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'right',
-    marginBottom: Spacing.lg,
-  },
-  bannerBtn: {
-    alignSelf: 'flex-end',
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-  },
-  bannerBtnText: {
-    color: Colors.primary,
-    fontWeight: '700',
-    fontSize: Typography.sm,
-  },
-  emptyCard: {
-    margin: Spacing.base,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
-    padding: Spacing.xxl,
-    alignItems: 'center',
-    ...Shadow.sm,
-  },
-  emptyIcon: { fontSize: 48, marginBottom: Spacing.md },
-  emptyText: {
-    fontSize: Typography.md,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  emptySubText: { fontSize: Typography.sm, color: Colors.textSecondary },
+  actionIcon   : { fontSize: 28, marginBottom: Spacing.xs },
+  actionLabel  : { fontSize: FontSize.xs, color: Colors.textSecondary, fontWeight: FontWeight.medium },
 });

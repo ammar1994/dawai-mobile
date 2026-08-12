@@ -1,18 +1,11 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json",
+  "extends": "@react-native/typescript-types/tsconfig.json",
   "compilerOptions": {
+    "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@screens/*": ["src/screens/*"],
-      "@components/*": ["src/components/*"],
-      "@navigation/*": ["src/navigation/*"],
-      "@services/*": ["src/services/*"],
-      "@hooks/*": ["src/hooks/*"],
-      "@store/*": ["src/store/*"],
-      "@theme/*": ["src/theme/*"],
-      "@types/*": ["src/types/*"],
-      "@assets/*": ["src/assets/*"]
+      "@/*": ["src/*"]
     }
   },
-  "exclude": ["node_modules", "dawai", "android", "ios"]
+  "include": ["src", "App.tsx", "index.js"]
 }

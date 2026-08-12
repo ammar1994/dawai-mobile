@@ -1,155 +1,103 @@
 import React from 'react';
 import {
-  TouchableOpacity,
-  Text,
   ActivityIndicator,
   StyleSheet,
-  ViewStyle,
-  TextStyle,
+  Text,
+  TouchableOpacity,
+  type TouchableOpacityProps,
+  type ViewStyle,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../theme';
+import { Colors, FontSize, FontWeight, Radius, Spacing } from '../../theme';
 
-interface ButtonProps {
-  title: string;
-  onPress: () => void;
-  loading?: boolean;
-  disabled?: boolean;
-  variant?: 'primary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+interface Props extends TouchableOpacityProps {
+  title       : string;
+  variant?    : 'primary' | 'outline' | 'ghost' | 'danger';
+  size?       : 'sm' | 'md' | 'lg';
+  loading?    : boolean;
+  fullWidth?  : boolean;
+  style?      : ViewStyle;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+export default function Button({
   title,
-  onPress,
-  loading = false,
-  disabled = false,
-  variant = 'primary',
-  size = 'lg',
+  variant   = 'primary',
+  size      = 'md',
+  loading   = false,
+  fullWidth = false,
   style,
-  textStyle,
-}) => {
+  disabled,
+  ...rest
+}: Props) {
   const isDisabled = disabled || loading;
+
+  const heights: Record<string, number> = { sm: 40, md: 50, lg: 58 };
+  const fontSizes: Record<string, number> = { sm: FontSize.sm, md: FontSize.md, lg: FontSize.lg };
 
   if (variant === 'primary') {
     return (
       <TouchableOpacity
-        onPress={onPress}
-        disabled={isDisabled}
         activeOpacity={0.85}
-        style={[styles.wrapper, sizeStyles[size], style, isDisabled && styles.disabled]}
+        disabled={isDisabled}
+        style={[fullWidth && styles.fullWidth, style]}
+        {...rest}
       >
         <LinearGradient
-          colors={isDisabled
-            ? [Colors.textHint, Colors.textHint]
-            : [Colors.primaryLight, Colors.primary, Colors.primaryDark]}
+          colors={isDisabled ? [Colors.textDisabled, Colors.textDisabled] : [Colors.primary, Colors.primaryDark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[styles.gradient, sizeStyles[size]]}
+          style={[styles.base, { height: heights[size], borderRadius: Radius.lg }]}
         >
-          {loading ? (
-            <ActivityIndicator color={Colors.white} size="small" />
-          ) : (
-            <Text style={[styles.primaryText, sizeTextStyles[size], textStyle]}>
-              {title}
-            </Text>
-          )}
+          {loading
+            ? <ActivityIndicator color={Colors.white} />
+            : <Text style={[styles.textPrimary, { fontSize: fontSizes[size] }]}>{title}</Text>
+          }
         </LinearGradient>
       </TouchableOpacity>
     );
   }
 
-  if (variant === 'outline') {
-    return (
-      <TouchableOpacity
-        onPress={onPress}
-        disabled={isDisabled}
-        activeOpacity={0.8}
-        style={[
-          styles.outline,
-          sizeStyles[size],
-          style,
-          isDisabled && styles.disabled,
-        ]}
-      >
-        {loading ? (
-          <ActivityIndicator color={Colors.primary} size="small" />
-        ) : (
-          <Text style={[styles.outlineText, sizeTextStyles[size], textStyle]}>
-            {title}
-          </Text>
-        )}
-      </TouchableOpacity>
-    );
-  }
+  const outlineStyle = variant === 'outline'
+    ? { borderWidth: 1.5, borderColor: Colors.primary, backgroundColor: 'transparent' }
+    : variant === 'danger'
+    ? { borderWidth: 1.5, borderColor: Colors.error, backgroundColor: Colors.errorLight }
+    : { backgroundColor: 'transparent' };
 
-  // ghost
+  const textColor = variant === 'outline' ? Colors.primary
+    : variant === 'danger' ? Colors.error
+    : Colors.textSecondary;
+
   return (
     <TouchableOpacity
-      onPress={onPress}
-      disabled={isDisabled}
       activeOpacity={0.7}
-      style={[styles.ghost, style]}
+      disabled={isDisabled}
+      style={[
+        styles.base,
+        { height: heights[size], borderRadius: Radius.lg, opacity: isDisabled ? 0.5 : 1 },
+        outlineStyle,
+        fullWidth && styles.fullWidth,
+        style,
+      ]}
+      {...rest}
     >
-      <Text style={[styles.ghostText, sizeTextStyles[size], textStyle]}>
-        {title}
-      </Text>
+      {loading
+        ? <ActivityIndicator color={textColor} />
+        : <Text style={[styles.textPrimary, { fontSize: fontSizes[size], color: textColor }]}>{title}</Text>
+      }
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  wrapper: {
-    borderRadius: Radius.full,
-    overflow: 'hidden',
-    ...Shadow.md,
+  base: {
+    alignItems     : 'center',
+    justifyContent : 'center',
+    paddingHorizontal: Spacing.lg,
   },
-  gradient: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.full,
-  },
-  primaryText: {
-    color: Colors.white,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  outline: {
-    borderWidth: 2,
-    borderColor: Colors.primary,
-    borderRadius: Radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  outlineText: {
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  ghost: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.sm,
-  },
-  ghostText: {
-    color: Colors.primary,
-    fontWeight: '500',
-  },
-  disabled: {
-    opacity: 0.55,
+  fullWidth: { width: '100%' },
+  textPrimary: {
+    color      : Colors.white,
+    fontWeight : FontWeight.bold,
+    writingDirection: 'rtl',
   },
 });
-
-const sizeStyles: Record<string, ViewStyle> = {
-  sm: { height: 40, paddingHorizontal: Spacing.lg },
-  md: { height: 48, paddingHorizontal: Spacing.xl },
-  lg: { height: 56, paddingHorizontal: Spacing.xxl },
-};
-
-const sizeTextStyles: Record<string, TextStyle> = {
-  sm: { fontSize: Typography.sm },
-  md: { fontSize: Typography.base },
-  lg: { fontSize: Typography.md },
-};

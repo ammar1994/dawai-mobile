@@ -1,73 +1,54 @@
-import api, { storage } from './api';
+import { mobileClient } from '../api/client';
 import type {
-  LoginRequest,
-  RegisterRequest,
   AuthTokens,
-  Customer,
-  ApiResponse,
+  LoginPayload,
+  RegisterPayload,
+  MobileCustomer,
 } from '../types';
 
-interface AuthResponseData {
-  customer: Customer;
-  tokens: AuthTokens;
-}
-
-export const authService = {
-  async login(payload: LoginRequest): Promise<AuthResponseData> {
-    const { data } = await api.post<ApiResponse<AuthResponseData>>(
-      '/mobile/auth/login',
-      payload,
-    );
-    _persistSession(data.data);
-    return data.data;
+export const AuthService = {
+  async login(payload: LoginPayload): Promise<AuthTokens> {
+    const res = await mobileClient.post<AuthTokens>('/auth/login', payload);
+    return res.data;
   },
 
-  async register(payload: RegisterRequest): Promise<AuthResponseData> {
-    const { data } = await api.post<ApiResponse<AuthResponseData>>(
-      '/mobile/auth/register',
-      payload,
+  async register(payload: RegisterPayload): Promise<AuthTokens> {
+    const res = await mobileClient.post<AuthTokens>('/auth/register', payload);
+    return res.data;
+  },
+
+  async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const res = await mobileClient.post<{ accessToken: string; refreshToken: string }>(
+      '/auth/refresh',
+      { refreshToken },
     );
-    _persistSession(data.data);
-    return data.data;
+    return res.data;
+  },
+
+  async getMe(): Promise<MobileCustomer> {
+    const res = await mobileClient.get<MobileCustomer>('/auth/me');
+    return res.data;
+  },
+
+  async updateProfile(payload: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+  }): Promise<MobileCustomer> {
+    const res = await mobileClient.patch<MobileCustomer>('/auth/profile', payload);
+    return res.data;
+  },
+
+  async forgotPassword(email: string): Promise<{ success: boolean }> {
+    const res = await mobileClient.post<{ success: boolean }>('/auth/forgot-password', { email });
+    return res.data;
   },
 
   async logout(): Promise<void> {
-    try {
-      await api.post('/mobile/auth/logout');
-    } catch {
-      // fail silently — clear local anyway
-    } finally {
-      _clearSession();
-    }
+    await mobileClient.post('/auth/logout');
   },
 
-  async getMe(): Promise<Customer> {
-    const { data } = await api.get<ApiResponse<Customer>>('/mobile/auth/me');
-    return data.data;
-  },
-
-  loadSession(): AuthResponseData | null {
-    const customerRaw = storage.getString('customer');
-    const accessToken  = storage.getString('accessToken');
-    const refreshToken = storage.getString('refreshToken');
-
-    if (!customerRaw || !accessToken) return null;
-
-    return {
-      customer: JSON.parse(customerRaw) as Customer,
-      tokens: { accessToken, refreshToken: refreshToken ?? '' },
-    };
+  async registerPushToken(token: string, platform: 'android' | 'ios'): Promise<void> {
+    await mobileClient.post('/push-token', { token, platform });
   },
 };
-
-function _persistSession(session: AuthResponseData) {
-  storage.set('accessToken',  session.tokens.accessToken);
-  storage.set('refreshToken', session.tokens.refreshToken);
-  storage.set('customer',     JSON.stringify(session.customer));
-}
-
-function _clearSession() {
-  storage.delete('accessToken');
-  storage.delete('refreshToken');
-  storage.delete('customer');
-}

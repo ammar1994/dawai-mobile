@@ -1,218 +1,81 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  StatusBar,
-} from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Colors, FontSize, FontWeight, Spacing } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
-import { Colors, Typography, Spacing } from '../../theme';
 import type { RootStackParamList } from '../../types';
 
-const { width, height } = Dimensions.get('window');
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
-
-export const SplashScreen: React.FC<Props> = ({ navigation }) => {
+export function SplashScreen() {
+  const navigation = useNavigation<Nav>();
   const loadSession = useAuthStore(s => s.loadSession);
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
 
-  // Animations
-  const heartScale   = useRef(new Animated.Value(0)).current;
-  const heartOpacity = useRef(new Animated.Value(0)).current;
-  const logoOpacity  = useRef(new Animated.Value(0)).current;
-  const taglineY     = useRef(new Animated.Value(20)).current;
-  const taglineOp    = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    async function init() {
+      await loadSession();
+    }
+    init();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const init = async () => {
-      // 1. نُشغّل animation + loadSession بالتوازي
-      const animPromise = new Promise<void>(resolve => {
-        Animated.sequence([
-          Animated.parallel([
-            Animated.spring(heartScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true }),
-            Animated.timing(heartOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-          ]),
-          Animated.sequence([
-            Animated.timing(heartScale, { toValue: 1.1,  duration: 150, useNativeDriver: true }),
-            Animated.timing(heartScale, { toValue: 1.0,  duration: 150, useNativeDriver: true }),
-            Animated.timing(heartScale, { toValue: 1.05, duration: 100, useNativeDriver: true }),
-            Animated.timing(heartScale, { toValue: 1.0,  duration: 100, useNativeDriver: true }),
-          ]),
-          Animated.timing(logoOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.parallel([
-            Animated.timing(taglineOp, { toValue: 1, duration: 400, useNativeDriver: true }),
-            Animated.timing(taglineY,  { toValue: 0, duration: 400, useNativeDriver: true }),
-          ]),
-        ]).start(() => resolve());
-      });
-
-      // 2. نُنتظر الاثنين: Animation + loadSession
-      await Promise.all([animPromise, loadSession()]);
-
-      if (cancelled) return;
-
-      // 3. نقرأ isAuthenticated بعد اكتمال loadSession (لا race condition)
-      const isAuth = useAuthStore.getState().isAuthenticated;
-      navigation.replace(isAuth ? 'Main' : 'Auth');
-    };
-
-    init();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // بعد loadSession تنتهي — isAuthenticated يتغير ونحول
+    // نتجنب setTimeout تماماً — نعتمد على state change
+    const unsub = useAuthStore.subscribe((state, prev) => {
+      if (state.isLoading === false && prev.isLoading === true) {
+        if (state.isAuthenticated) {
+          navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+        } else {
+          navigation.reset({ index: 0, routes: [{ name: 'Auth' }] });
+        }
+      }
+    });
+    return unsub;
+  }, [navigation]);
 
   return (
     <LinearGradient
-      colors={['#0D0D1A', '#1A1A2E', '#2D1040']}
+      colors={[Colors.primary, Colors.primaryDark, Colors.secondary]}
       style={styles.container}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#0D0D1A" />
-
-      {/* Glow effect */}
-      <View style={styles.glow} />
-
-      {/* Heart Icon */}
-      <Animated.View
-        style={[
-          styles.heartContainer,
-          { opacity: heartOpacity, transform: [{ scale: heartScale }] },
-        ]}
-      >
-        <LinearGradient
-          colors={['#FF4DB8', '#E91E8C', '#C2156F']}
-          style={styles.heartBg}
-        >
-          <Text style={styles.heartEmoji}>🫀</Text>
-          <Text style={styles.rxText}>Rx</Text>
-          <View style={styles.ecgLine}>
-            <Text style={styles.ecgSymbol}>⸻∧∨⸻</Text>
-          </View>
-        </LinearGradient>
-      </Animated.View>
-
-      {/* App name */}
-      <Animated.View style={{ opacity: logoOpacity }}>
-        <Text style={styles.appNameEn}>DAWAI</Text>
-        <Text style={styles.appNameAr}>دوائي</Text>
-      </Animated.View>
-
-      {/* Tagline */}
-      <Animated.View
-        style={{
-          opacity: taglineOp,
-          transform: [{ translateY: taglineY }],
-          marginTop: Spacing.xl,
-        }}
-      >
-        <Text style={styles.tagline}>القلب والعلاج</Text>
-      </Animated.View>
-
-      {/* Bottom dots */}
-      <View style={styles.dotsRow}>
-        {[0, 1, 2].map(i => (
-          <View
-            key={i}
-            style={[styles.dot, i === 1 && styles.dotActive]}
-          />
-        ))}
+      <View style={styles.center}>
+        <View style={styles.logoBox}>
+          <Text style={styles.logoEmoji}>💊</Text>
+        </View>
+        <Text style={styles.appName}>دوائي</Text>
+        <Text style={styles.tagline}>صيدليتك في جيبك</Text>
       </View>
+      <ActivityIndicator color={Colors.white} size="large" style={styles.loader} />
     </LinearGradient>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center   : { alignItems: 'center', marginBottom: Spacing.xxl },
+  logoBox  : {
+    width           : 96,
+    height          : 96,
+    borderRadius    : 28,
+    backgroundColor : 'rgba(255,255,255,0.2)',
+    justifyContent  : 'center',
+    alignItems      : 'center',
+    marginBottom    : Spacing.md,
   },
-  glow: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: Colors.primaryGlow,
-    top: height * 0.25,
-    alignSelf: 'center',
+  logoEmoji: { fontSize: 48 },
+  appName  : {
+    color      : Colors.white,
+    fontSize   : FontSize.xxxl,
+    fontWeight : FontWeight.bold,
+    marginBottom: Spacing.xs,
   },
-  heartContainer: {
-    marginBottom: Spacing.xxl,
+  tagline  : {
+    color    : 'rgba(255,255,255,0.75)',
+    fontSize : FontSize.md,
   },
-  heartBg: {
-    width: 140,
-    height: 140,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  heartEmoji: {
-    fontSize: 52,
-    position: 'absolute',
-    opacity: 0.3,
-  },
-  rxText: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: Colors.white,
-    letterSpacing: 2,
-    marginBottom: 4,
-  },
-  ecgLine: {
-    position: 'absolute',
-    bottom: 28,
-  },
-  ecgSymbol: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-    letterSpacing: -2,
-  },
-  appNameEn: {
-    fontSize: Typography.xxl,
-    fontWeight: '900',
-    color: Colors.white,
-    letterSpacing: 10,
-    textAlign: 'center',
-  },
-  appNameAr: {
-    fontSize: Typography.lg,
-    fontWeight: '400',
-    color: Colors.accent,
-    letterSpacing: 4,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  tagline: {
-    fontSize: Typography.base,
-    color: 'rgba(255,255,255,0.5)',
-    textAlign: 'center',
-    letterSpacing: 2,
-  },
-  dotsRow: {
-    position: 'absolute',
-    bottom: 60,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  dotActive: {
-    width: 20,
-    backgroundColor: Colors.primary,
-  },
+  loader   : { position: 'absolute', bottom: 64 },
 });

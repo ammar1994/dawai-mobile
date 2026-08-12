@@ -1,80 +1,54 @@
 import { create } from 'zustand';
-import api from '../services/api';
-import type { Pharmacy } from '../types';
+import { Pharmacy } from '../types';
+import api from '../api/client';
 
-interface PharmacyStore {
-  pharmacies:      Pharmacy[];
-  activePharmacy:  Pharmacy | null;
-  isLoading:       boolean;
-  error:           string | null;
-  lastFetchCoords: { lat: number; lng: number; radius: number } | null;
-
-  fetchNearby: (lat: number, lng: number, radiusKm?: number) => Promise<void>;
-  fetchById:   (id: string) => Promise<void>;
-  clearError:  () => void;
+interface PharmacyState {
+  pharmacies    : Pharmacy[];
+  selected      : Pharmacy | null;
+  isLoading     : boolean;
+  error         : string | null;
 }
 
-export const usePharmacyStore = create<PharmacyStore>((set, get) => ({
-  pharmacies:      [],
-  activePharmacy:  null,
-  isLoading:       false,
-  error:           null,
-  lastFetchCoords: null,
+interface PharmacyActions {
+  fetchNearby   : (lat: number, lng: number, radius?: number) => Promise<void>;
+  fetchById     : (id: string)                                => Promise<void>;
+  setSelected   : (pharmacy: Pharmacy | null)                 => void;
+  clearError    : ()                                          => void;
+}
 
-  fetchNearby: async (lat, lng, radiusKm = 5) => {
-    // تجنب إعادة الجلب إذا كانت الإحداثيات نفسها والمشعاع نفسه
-    const last = get().lastFetchCoords;
-    if (
-      last &&
-      Math.abs(last.lat - lat) < 0.001 &&
-      Math.abs(last.lng - lng) < 0.001 &&
-      last.radius === radiusKm
-    ) return;
+export const usePharmacyStore = create<PharmacyState & PharmacyActions>((set) => ({
+  pharmacies : [],
+  selected   : null,
+  isLoading  : false,
+  error      : null,
 
+  clearError: () => set({ error: null }),
+
+  setSelected: (pharmacy) => set({ selected: pharmacy }),
+
+  fetchNearby: async (lat, lng, radius = 5) => {
     set({ isLoading: true, error: null });
     try {
-      const res = await api.get('/mobile/pharmacies/nearby', {
-        params: { lat, lng, radius: radiusKm * 1000 },
+      const { data } = await api.get('/pharmacies/nearby', {
+        params: { lat, lng, radius },
       });
-      set({
-        pharmacies:      res.data?.data ?? [],
-        isLoading:       false,
-        lastFetchCoords: { lat, lng, radius: radiusKm },
-      });
+      const list: Pharmacy[] = data.data ?? data;
+      set({ pharmacies: list, isLoading: false });
     } catch (err: any) {
-      set({
-        error:     err?.response?.data?.message ?? 'فشل تحميل الصيدليات',
-        isLoading: false,
-      });
+      const msg = err?.response?.data?.message ?? 'فشل تحميل الصيدليات';
+      set({ isLoading: false, error: msg });
     }
   },
 
   fetchById: async (id) => {
-    // تحقق من الـ cache أولاً
-    const cached = get().pharmacies.find(p => p.id === id);
-    if (cached) {
-      set({ activePharmacy: cached });
-      return;
-    }
-
     set({ isLoading: true, error: null });
     try {
-      const res = await api.get(`/mobile/pharmacies/${id}`);
-      const pharmacy: Pharmacy = res.data?.data;
-      set(s => ({
-        activePharmacy: pharmacy,
-        pharmacies:     s.pharmacies.some(p => p.id === id)
-          ? s.pharmacies
-          : [...s.pharmacies, pharmacy],
-        isLoading: false,
-      }));
+      const { data } = await api.get(`/pharmacies/${id}`);
+      const pharmacy: Pharmacy = data.data ?? data;
+      set({ selected: pharmacy, isLoading: false });
     } catch (err: any) {
-      set({
-        error:     err?.response?.data?.message ?? 'فشل تحميل الصيدلية',
-        isLoading: false,
-      });
+      const msg = err?.response?.data?.message ?? 'فشل تحميل الصيدلية';
+      set({ isLoading: false, error: msg });
     }
   },
-
-  clearError: () => set({ error: null }),
 }));

@@ -1,71 +1,77 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"   // Firebase
 
 react {
-    hermesEnabled = true
+    // الإعدادات الافتراضية — لا تعدّل إلا إذا غيرت موقع index.js
 }
 
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
+    namespace "com.dawaiapp"
     compileSdk rootProject.ext.compileSdkVersion
-    namespace "com.dawai.pharmacy"
 
     defaultConfig {
-        applicationId "com.dawai.pharmacy"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        applicationId "com.dawaiapp"
+        minSdk         rootProject.ext.minSdkVersion
+        targetSdk      rootProject.ext.targetSdkVersion
+        versionCode    1
+        versionName    "1.0.0"
+
+        // لـ react-native-vector-icons
+        vectorDrawables.useSupportLibrary = true
     }
 
     signingConfigs {
         debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+            storeFile      file("debug.keystore")
+            storePassword "android"
+            keyAlias       "androiddebugkey"
+            keyPassword   "android"
+        }
+        release {
+            // يُحدَّث عند الرفع للـ Store
+            if (project.hasProperty("DAWAI_UPLOAD_STORE_FILE")) {
+                storeFile      file(DAWAI_UPLOAD_STORE_FILE)
+                storePassword  DAWAI_UPLOAD_STORE_PASSWORD
+                keyAlias       DAWAI_UPLOAD_KEY_ALIAS
+                keyPassword    DAWAI_UPLOAD_KEY_PASSWORD
+            }
         }
     }
 
     buildTypes {
-        debug { signingConfig signingConfigs.debug }
-        release {
+        debug {
             signingConfig signingConfigs.debug
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
-    }
-
-    packaging {
-        jniLibs {
-            pickFirsts += [
-                'lib/x86/libc++_shared.so',
-                'lib/x86_64/libc++_shared.so',
-                'lib/armeabi-v7a/libc++_shared.so',
-                'lib/arm64-v8a/libc++_shared.so',
-            ]
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled       true
+            shrinkResources     true
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
 }
 
 dependencies {
+    // React Native
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
 
-    // Native modules — manually linked
-    implementation project(':d11_react-native-fast-image')
-    implementation project(':notifee_react-native')
-    implementation project(':async-storage')
-    implementation project(':react-native-community_geolocation')
-    implementation project(':react-native-community_netinfo')
-    implementation project(':react-native-bootsplash')
-    implementation project(':react-native-gesture-handler')
-    implementation project(':react-native-image-picker')
-    implementation project(':react-native-linear-gradient')
-    implementation project(':react-native-permissions')
-    implementation project(':react-native-safe-area-context')
-    implementation project(':react-native-screens')
-    implementation project(':react-native-vector-icons')
+    // Kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
+
+    // Firebase BOM
+    implementation platform("com.google.firebase:firebase-bom:33.1.0")
+    implementation "com.google.firebase:firebase-messaging"
+    implementation "com.google.firebase:firebase-analytics"
+
+    // Google Maps (react-native-maps)
+    implementation "com.google.android.gms:play-services-maps:18.2.0"
+    implementation "com.google.android.gms:play-services-location:21.2.0"
 }
+
+// react-native-vector-icons — يُضيف جميع الـ fonts تلقائياً
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")

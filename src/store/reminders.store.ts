@@ -1,64 +1,94 @@
 import { create } from 'zustand';
-import { remindersService } from '../services/reminders.service';
-import type { Reminder, CreateReminderRequest } from '../types';
+import { Reminder, CreateReminderPayload } from '../types';
+import api from '../api/client';
 
-interface RemindersStore {
-  reminders: Reminder[];
-  isLoading: boolean;
-  error: string | null;
-
-  fetchReminders: () => Promise<void>;
-  createReminder: (payload: CreateReminderRequest) => Promise<Reminder>;
-  toggleReminder: (id: string, isActive: boolean) => Promise<void>;
-  deleteReminder: (id: string) => Promise<void>;
-  clearError: () => void;
+interface RemindersState {
+  reminders : Reminder[];
+  isLoading : boolean;
+  error     : string | null;
 }
 
-export const useRemindersStore = create<RemindersStore>((set, get) => ({
-  reminders: [],
-  isLoading: false,
-  error:     null,
+interface RemindersActions {
+  fetchReminders : ()                                                   => Promise<void>;
+  createReminder : (payload: CreateReminderPayload)                     => Promise<void>;
+  updateReminder : (id: string, data: Partial<CreateReminderPayload & { isActive: boolean }>) => Promise<void>;
+  deleteReminder : (id: string)                                         => Promise<void>;
+  toggleActive   : (id: string, isActive: boolean)                     => Promise<void>;
+  clearError     : ()                                                   => void;
+}
+
+export const useRemindersStore = create<RemindersState & RemindersActions>((set, get) => ({
+  reminders : [],
+  isLoading : false,
+  error     : null,
+
+  clearError: () => set({ error: null }),
 
   fetchReminders: async () => {
     set({ isLoading: true, error: null });
     try {
-      const reminders = await remindersService.list();
-      set({ reminders, isLoading: false });
+      const { data } = await api.get('/reminders');
+      const list: Reminder[] = data.data ?? data;
+      set({ reminders: list, isLoading: false });
     } catch (err: any) {
-      set({ error: err?.response?.data?.message ?? 'فشل تحميل التذكيرات', isLoading: false });
+      const msg = err?.response?.data?.message ?? 'فشل تحميل التذكيرات';
+      set({ isLoading: false, error: msg });
     }
   },
 
   createReminder: async (payload) => {
     set({ isLoading: true, error: null });
     try {
-      const r = await remindersService.create(payload);
-      set(s => ({ reminders: [r, ...s.reminders], isLoading: false }));
-      return r;
+      const { data } = await api.post('/reminders', payload);
+      const reminder: Reminder = data.data ?? data;
+      set({ reminders: [reminder, ...get().reminders], isLoading: false });
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? 'فشل إضافة التذكير';
-      set({ error: msg, isLoading: false });
-      throw new Error(msg);
+      set({ isLoading: false, error: msg });
+      throw err;
     }
   },
 
-  toggleReminder: async (id, isActive) => {
+  updateReminder: async (id, data) => {
+    set({ isLoading: true, error: null });
     try {
-      const updated = await remindersService.update(id, { isActive });
-      set(s => ({ reminders: s.reminders.map(r => r.id === id ? updated : r) }));
+      const { data: res } = await api.patch(`/reminders/${id}`, data);
+      const updated: Reminder = res.data ?? res;
+      set({
+        reminders: get().reminders.map(r => r.id === id ? updated : r),
+        isLoading: false,
+      });
     } catch (err: any) {
-      set({ error: err?.response?.data?.message ?? 'فشل تحديث التذكير' });
+      const msg = err?.response?.data?.message ?? 'فشل تعديل التذكير';
+      set({ isLoading: false, error: msg });
+      throw err;
     }
   },
 
   deleteReminder: async (id) => {
+    set({ isLoading: true, error: null });
     try {
-      await remindersService.delete(id);
-      set(s => ({ reminders: s.reminders.filter(r => r.id !== id) }));
+      await api.delete(`/reminders/${id}`);
+      set({ reminders: get().reminders.filter(r => r.id !== id), isLoading: false });
     } catch (err: any) {
-      set({ error: err?.response?.data?.message ?? 'فشل حذف التذكير' });
+      const msg = err?.response?.data?.message ?? 'فشل حذف التذكير';
+      set({ isLoading: false, error: msg });
+      throw err;
     }
   },
 
-  clearError: () => set({ error: null }),
+  toggleActive: async (id, isActive) => {
+    // Optimistic update
+    set({
+      reminders: get().reminders.map(r => r.id === id ? { ...r, isActive } : r),
+    });
+    try {
+      await api.patch(`/reminders/${id}`, { isActive });
+    } catch {
+      // Rollback on failure
+      set({
+        reminders: get().reminders.map(r => r.id === id ? { ...r, isActive: !isActive } : r),
+      });
+    }
+  },
 }));
