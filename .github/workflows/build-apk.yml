@@ -29,49 +29,36 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🔍 Verify node_modules
-        run: test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
-
-      - name: 🩹 Patch gradle-plugin source files
+      - name: 🩹 Patch ReactSettingsExtension
         run: |
-          PLUGIN_DIR="node_modules/@react-native/gradle-plugin"
-          
-          # Fix 1: ReactSettingsExtension.kt - substring -> take + packageName fallback
-          EXT_FILE="$PLUGIN_DIR/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
+          EXT_FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           if [ -f "$EXT_FILE" ]; then
             sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$EXT_FILE"
             sed -i 's/readText()\.substring(0, 1024)/readText().take(1024)/g' "$EXT_FILE"
-            # Add applicationId fallback for packageName
-            sed -i 's/get("packageName")/get("packageName") ?: get("applicationId")/g' "$EXT_FILE"
-            echo "✅ Patched ReactSettingsExtension.kt"
-            cat "$EXT_FILE"
-          else
-            echo "⚠️ Not found: $EXT_FILE"
-            find "$PLUGIN_DIR" -name "*.kt" 2>/dev/null | head -10
-          fi
-          
-          # Fix 2: Also patch any compiled/cached jar if exists
-          JAR_FILE=$(find "$PLUGIN_DIR" -name "*.jar" 2>/dev/null | head -1)
-          if [ -n "$JAR_FILE" ]; then
-            echo "Found JAR: $JAR_FILE"
+            echo "✅ Patched"
           fi
 
-      - name: 🔍 Debug react-native config
+      - name: 🔍 Debug react-native config output
         run: |
-          echo "=== Running react-native config ==="
+          echo "=== react-native config ==="
           node node_modules/@react-native-community/cli/build/index.js config 2>/dev/null | \
           python3 -c "
           import sys, json
           try:
-              d = json.load(sys.stdin)
-              android = d.get('project', {}).get('android', {})
-              print('packageName:', android.get('packageName', 'NOT FOUND'))
-              print('applicationId:', android.get('applicationId', 'NOT FOUND'))
-              print('sourceDir:', android.get('sourceDir', 'NOT FOUND'))
-              print('manifestPath:', android.get('manifestPath', 'NOT FOUND'))
+              content = sys.stdin.read()
+              start = content.find('{')
+              if start >= 0:
+                  d = json.loads(content[start:])
+                  android = d.get('project', {}).get('android', {})
+                  print('packageName:', android.get('packageName', 'NOT FOUND'))
+                  print('applicationId:', android.get('applicationId', 'NOT FOUND'))
+                  print('sourceDir:', android.get('sourceDir', 'NOT FOUND'))
+              else:
+                  print('No JSON found')
+                  print(content[:300])
           except Exception as e:
               print('Error:', e)
-          " || echo "Config failed"
+          "
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -83,11 +70,10 @@ jobs:
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
 
-      - name: 🔥 Setup Firebase google-services.json
+      - name: 🔥 Setup Firebase
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
-            echo "✅ Real google-services.json"
           else
             cat > android/app/google-services.json << 'JSON_EOF'
           {
@@ -108,21 +94,20 @@ jobs:
             "configuration_version": "1"
           }
           JSON_EOF
-            echo "⚠️ Using dummy google-services.json"
           fi
 
-      - name: 🗺️ Setup Maps API Key
+      - name: 🗺️ Maps API Key
         run: |
           if [ -n "${{ secrets.MAPS_API_KEY }}" ]; then
             sed -i "s/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g" android/app/src/main/AndroidManifest.xml
           fi
 
-      - name: 🔤 Copy vector-icons fonts
+      - name: 🔤 Copy fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
           cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
 
-      - name: 🔑 Create Debug Keystore
+      - name: 🔑 Debug Keystore
         run: |
           keytool -genkeypair -v \
             -keystore android/app/debug.keystore \
@@ -131,26 +116,42 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: 🛠️ Create local.properties
+      - name: 🛠️ local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: 🏗️ Build Debug APK
+        id: build
         working-directory: android
+        continue-on-error: true
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          BUILD_EXIT=${PIPESTATUS[0]}
-          if [ $BUILD_EXIT -ne 0 ]; then
-            echo "=== ❌ BUILD ERRORS ==="
-            grep -E "FAILURE|Caused by:|What went wrong|Exception|error:" /tmp/build.log \
-              | grep -v "^\s*at " | head -30
-            exit $BUILD_EXIT
-          fi
-          echo "✅ BUILD SUCCESS"
-          ls -lh app/build/outputs/apk/debug/
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: 📋 Print Full Build Errors
+        if: always()
+        run: |
+          echo "=== FULL BUILD LOG TAIL ==="
+          tail -100 /tmp/build.log || true
+          echo ""
+          echo "=== KEY ERRORS ==="
+          grep -E "FAILURE|Caused by:|What went wrong|Exception|error:|Error:" /tmp/build.log \
+            | grep -v "^\s*at " | head -50 || true
+
+      - name: 📤 Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-v${{ github.run_number }}
+          path: /tmp/build.log
+          retention-days: 7
+
+      - name: ❌ Fail if build failed
+        if: steps.build.outputs.exit_code != '0'
+        run: exit 1
 
       - name: 📤 Upload APK
-        if: success()
+        if: steps.build.outputs.exit_code == '0'
         uses: actions/upload-artifact@v4
         with:
           name: DAWAI-debug-v${{ github.run_number }}
@@ -164,7 +165,6 @@ jobs:
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
             echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
-            echo "📥 حمّل من تبويب **Artifacts**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء — راجع artifact **build-log**" >> $GITHUB_STEP_SUMMARY
           fi
