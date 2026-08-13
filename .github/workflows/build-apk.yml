@@ -32,19 +32,33 @@ jobs:
       - name: 🔍 Verify node_modules
         run: test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
 
-      - name: 🩹 Patch RN gradle-plugin bug (StringIndexOutOfBoundsException)
+      - name: 🩹 Patch RN gradle-plugin StringIndexOutOfBoundsException bug
         run: |
-          FILE=$(find node_modules/@react-native/gradle-plugin/src -name "ReactSettingsExtension.kt" 2>/dev/null | head -1)
+          PLUGIN_DIR="node_modules/@react-native/gradle-plugin"
+          echo "=== محتوى المجلد ==="
+          ls "$PLUGIN_DIR/"
+          echo ""
+          echo "=== البحث عن ملفات .kt ==="
+          find "$PLUGIN_DIR/src" -name "ReactSettingsExtension.kt" 2>/dev/null | head -5
+          
+          FILE=$(find "$PLUGIN_DIR/src" -name "ReactSettingsExtension.kt" 2>/dev/null | head -1)
           if [ -n "$FILE" ]; then
-            echo "📄 Found: $FILE"
-            # إصلاح الـ bug: substring(0, 1024) → substring(0, minOf(length, 1024))
+            echo "📄 الملف: $FILE"
+            echo "=== السطور التي تحتوي 1024 ==="
+            grep -n "1024" "$FILE" || echo "(لا يوجد)"
+            # إصلاح الـ bug
             sed -i 's/configOutput\.substring(0, 1024)/configOutput.substring(0, minOf(configOutput.length, 1024))/g' "$FILE"
-            sed -i 's/configOutput\.substring(0, 1024)/configOutput.substring(0, minOf(configOutput.length, 1024))/g' "$FILE"
-            grep -n "substring" "$FILE" && echo "✅ Patched" || echo "⚠️ Pattern not found — checking file"
-            grep -n "1024\|cache\|Cache" "$FILE" | head -10
+            echo "✅ تم الـ patch"
+            grep -n "1024\|minOf" "$FILE"
+            # حذف الـ pre-compiled JARs لإجبار إعادة الترجمة
+            echo ""
+            echo "=== حذف pre-compiled artifacts ==="
+            find "$PLUGIN_DIR" -name "*.jar" | head -10
+            rm -rf "$PLUGIN_DIR/build/" 2>/dev/null && echo "✅ build/ محذوف"
+            find "$PLUGIN_DIR" -name "*.jar" -not -path "*/src/*" -delete && echo "✅ JARs محذوفة"
           else
-            echo "⚠️ ReactSettingsExtension.kt not found — listing gradle-plugin src:"
-            find node_modules/@react-native/gradle-plugin -name "*.kt" | head -20
+            echo "⚠️ الملف .kt غير موجود — هيكل الـ plugin:"
+            find "$PLUGIN_DIR" -type f | head -30
           fi
 
       - name: 🤖 Setup Android SDK
