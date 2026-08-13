@@ -47,6 +47,9 @@ jobs:
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+            echo "✅ google-services.json من Secret"
+          else
+            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
           fi
 
       - name: 🗺️ Setup Maps API Key
@@ -73,59 +76,25 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace > /tmp/build.log 2>&1 || true
-          grep -q "BUILD SUCCESSFUL" /tmp/build.log && echo "SUCCESS=true" >> $GITHUB_ENV || echo "SUCCESS=false" >> $GITHUB_ENV
-
-      - name: 💾 Save build log to repo (for debugging)
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # استخرج أهم أجزاء السجل
-          {
-            echo "=== RUN ${{ github.run_number }} — $(date) ==="
-            echo "=== ERRORS ==="
-            grep -E "FAILURE|error:|Caused by:|What went wrong|Exception|could not" /tmp/build.log | head -40 || echo "(no errors found)"
-            echo ""
-            echo "=== LAST 100 LINES ==="
-            tail -100 /tmp/build.log
-          } > /tmp/build-summary.txt
-          
-          # احسب base64
-          LOG_B64=$(base64 -w 0 /tmp/build-summary.txt)
-          
-          # احصل على SHA إن وجد الملف
-          SHA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/build-debug.log" | \
-            python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || echo "")
-          
-          # ارفع الملف
-          if [ -n "$SHA" ]; then
-            BODY="{"message":"🔍 build log run ${{ github.run_number }}","content":"$LOG_B64","sha":"$SHA"}"
-          else
-            BODY="{"message":"🔍 build log run ${{ github.run_number }}","content":"$LOG_B64"}"
-          fi
-          
-          curl -s -X PUT \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Content-Type: application/json" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/build-debug.log" \
-            -d "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print('✅ Log saved:', d.get('commit',{}).get('sha','ERROR')[:10])"
-
-      - name: ✅ Check result
-        run: |
-          if [ "$SUCCESS" = "true" ]; then
-            echo "✅ BUILD SUCCESS"
-            ls -lh android/app/build/outputs/apk/debug/
-          else
-            echo "❌ BUILD FAILED — check build-debug.log in repo"
-            exit 1
-          fi
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          echo "✅ BUILD SUCCESS"
+          ls -lh app/build/outputs/apk/debug/
 
       - name: 📤 Upload APK
-        if: env.SUCCESS == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: DAWAI-debug-v${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      - name: 📊 Build Summary
+        if: always()
+        run: |
+          echo "## نتيجة البناء" >> $GITHUB_STEP_SUMMARY
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+            echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "📥 حمّل من تبويب **Artifacts**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
+          fi
