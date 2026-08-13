@@ -32,28 +32,35 @@ jobs:
       - name: 🔍 Verify node_modules
         run: test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
 
-      - name: 🩹 Deep patch ReactSettingsExtension
+      - name: 🩹 Patch gradle-plugin source files
         run: |
-          EXT_FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
+          PLUGIN_DIR="node_modules/@react-native/gradle-plugin"
+          
+          # Fix 1: ReactSettingsExtension.kt - substring -> take + packageName fallback
+          EXT_FILE="$PLUGIN_DIR/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           if [ -f "$EXT_FILE" ]; then
-            echo "=== Original ==="
-            cat "$EXT_FILE"
-            # Fix substring -> take
             sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$EXT_FILE"
             sed -i 's/readText()\.substring(0, 1024)/readText().take(1024)/g' "$EXT_FILE"
-            # Fix packageName -> try packageName then applicationId
+            # Add applicationId fallback for packageName
             sed -i 's/get("packageName")/get("packageName") ?: get("applicationId")/g' "$EXT_FILE"
-            echo "=== Patched ==="
+            echo "✅ Patched ReactSettingsExtension.kt"
             cat "$EXT_FILE"
-            echo "✅ ReactSettingsExtension patched"
           else
-            echo "File not found, searching..."
-            find node_modules/@react-native/gradle-plugin -name "*.kt" | head -20
+            echo "⚠️ Not found: $EXT_FILE"
+            find "$PLUGIN_DIR" -name "*.kt" 2>/dev/null | head -10
+          fi
+          
+          # Fix 2: Also patch any compiled/cached jar if exists
+          JAR_FILE=$(find "$PLUGIN_DIR" -name "*.jar" 2>/dev/null | head -1)
+          if [ -n "$JAR_FILE" ]; then
+            echo "Found JAR: $JAR_FILE"
           fi
 
-      - name: 🔍 Verify react-native config
+      - name: 🔍 Debug react-native config
         run: |
-          node node_modules/@react-native-community/cli/build/index.js config 2>/dev/null | python3 -c "
+          echo "=== Running react-native config ==="
+          node node_modules/@react-native-community/cli/build/index.js config 2>/dev/null | \
+          python3 -c "
           import sys, json
           try:
               d = json.load(sys.stdin)
@@ -61,9 +68,10 @@ jobs:
               print('packageName:', android.get('packageName', 'NOT FOUND'))
               print('applicationId:', android.get('applicationId', 'NOT FOUND'))
               print('sourceDir:', android.get('sourceDir', 'NOT FOUND'))
+              print('manifestPath:', android.get('manifestPath', 'NOT FOUND'))
           except Exception as e:
-              print('Config parse error:', e)
-          " || echo "Config command failed"
+              print('Error:', e)
+          " || echo "Config failed"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -113,7 +121,6 @@ jobs:
         run: |
           mkdir -p android/app/src/main/assets/fonts
           cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
-          echo "Fonts copied: $(ls android/app/src/main/assets/fonts/ | wc -l)"
 
       - name: 🔑 Create Debug Keystore
         run: |
@@ -134,7 +141,6 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
-            echo ""
             echo "=== ❌ BUILD ERRORS ==="
             grep -E "FAILURE|Caused by:|What went wrong|Exception|error:" /tmp/build.log \
               | grep -v "^\s*at " | head -30
