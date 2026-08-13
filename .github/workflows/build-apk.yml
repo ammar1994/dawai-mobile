@@ -32,33 +32,22 @@ jobs:
       - name: 🔍 Verify node_modules
         run: test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
 
-      - name: 🩹 Patch RN gradle-plugin StringIndexOutOfBoundsException bug
+      - name: 🩹 Patch ReactSettingsExtension bug (المسار الصحيح)
         run: |
-          PLUGIN_DIR="node_modules/@react-native/gradle-plugin"
-          echo "=== محتوى المجلد ==="
-          ls "$PLUGIN_DIR/"
-          echo ""
-          echo "=== البحث عن ملفات .kt ==="
-          find "$PLUGIN_DIR/src" -name "ReactSettingsExtension.kt" 2>/dev/null | head -5
-          
-          FILE=$(find "$PLUGIN_DIR/src" -name "ReactSettingsExtension.kt" 2>/dev/null | head -1)
-          if [ -n "$FILE" ]; then
-            echo "📄 الملف: $FILE"
-            echo "=== السطور التي تحتوي 1024 ==="
-            grep -n "1024" "$FILE" || echo "(لا يوجد)"
-            # إصلاح الـ bug
-            sed -i 's/configOutput\.substring(0, 1024)/configOutput.substring(0, minOf(configOutput.length, 1024))/g' "$FILE"
-            echo "✅ تم الـ patch"
-            grep -n "1024\|minOf" "$FILE"
-            # حذف الـ pre-compiled JARs لإجبار إعادة الترجمة
-            echo ""
-            echo "=== حذف pre-compiled artifacts ==="
-            find "$PLUGIN_DIR" -name "*.jar" | head -10
-            rm -rf "$PLUGIN_DIR/build/" 2>/dev/null && echo "✅ build/ محذوف"
-            find "$PLUGIN_DIR" -name "*.jar" -not -path "*/src/*" -delete && echo "✅ JARs محذوفة"
+          FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
+          if [ -f "$FILE" ]; then
+            echo "✅ الملف موجود: $FILE"
+            echo "--- السطر 162 قبل الإصلاح ---"
+            sed -n '160,165p' "$FILE"
+            # إصلاح: substring(0, 1024) → take(1024) — آمن مع strings أقصر من 1024
+            sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$FILE"
+            echo "--- السطر 162 بعد الإصلاح ---"
+            sed -n '160,165p' "$FILE"
+            echo "✅ تم الـ patch بنجاح"
           else
-            echo "⚠️ الملف .kt غير موجود — هيكل الـ plugin:"
-            find "$PLUGIN_DIR" -type f | head -30
+            echo "❌ الملف غير موجود — بحث:"
+            find node_modules/@react-native/gradle-plugin -name "ReactSettingsExtension.kt"
+            exit 1
           fi
 
       - name: 🤖 Setup Android SDK
