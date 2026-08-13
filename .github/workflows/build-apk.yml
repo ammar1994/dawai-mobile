@@ -37,7 +37,6 @@ jobs:
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           if [ -f "$FILE" ]; then
             sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$FILE"
-            sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE"
             echo "✅ Patched"
           fi
 
@@ -50,35 +49,36 @@ jobs:
           echo "Exit: $?"
           echo "Length: $(wc -c < /tmp/rn-config.json)"
           echo "=== المحتوى ==="
-          cat /tmp/rn-config.json | python3 -c "
-import sys,json
-try:
-    d=json.load(sys.stdin)
-    android=d.get('project',{}).get('android',{})
-    print('packageName:', android.get('packageName','NOT FOUND'))
-    print('sourceDir:', android.get('sourceDir','NOT FOUND'))
-    print('applicationId:', android.get('applicationId','NOT FOUND'))
-    print('Full android keys:', list(android.keys()))
-except Exception as e:
-    print('JSON parse error:', e)
-    import sys
-    sys.stdin.seek(0)
-" || true
+          python3 -c "
+          import json, sys
+          try:
+              with open('/tmp/rn-config.json') as f:
+                  d = json.load(f)
+              android = d.get('project', {}).get('android', {})
+              print('packageName:', android.get('packageName', 'NOT FOUND'))
+              print('sourceDir:', android.get('sourceDir', 'NOT FOUND'))
+              print('applicationId:', android.get('applicationId', 'NOT FOUND'))
+              print('Full android keys:', list(android.keys()))
+          except Exception as e:
+              print('JSON parse error:', e)
+          " || true
 
-          # احفظ في الـ repo للقراءة عبر API
           B64=$(base64 -w 0 /tmp/rn-config.json)
           SHA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
             "https://api.github.com/repos/${{ github.repository }}/contents/rn-config-debug.json" | \
             python3 -c "import sys,json; print(json.load(sys.stdin).get('sha',''))" 2>/dev/null || echo "")
           if [ -n "$SHA" ]; then
-            BODY="{"message":"debug","content":"$B64","sha":"$SHA"}"
+            curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/rn-config-debug.json" \
+              -d "{\"message\":\"debug\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" > /dev/null
           else
-            BODY="{"message":"debug","content":"$B64"}"
+            curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/rn-config-debug.json" \
+              -d "{\"message\":\"debug\",\"content\":\"$B64\"}" > /dev/null
           fi
-          curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Content-Type: application/json" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/rn-config-debug.json" \
-            -d "$BODY" > /dev/null && echo "✅ Config saved to repo"
+          echo "✅ Config saved to repo"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
