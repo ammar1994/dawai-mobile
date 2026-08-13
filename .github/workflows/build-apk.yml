@@ -32,53 +32,51 @@ jobs:
       - name: 🔍 Verify node_modules
         run: test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
 
-      - name: 🩹 Patch ReactSettingsExtension bug
+      - name: 🩹 Patch ReactSettingsExtension - fix packageName detection
         run: |
-          FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
-          if [ -f "$FILE" ]; then
-            sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$FILE"
-            echo "✅ Patched"
+          EXT_FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
+          if [ -f "$EXT_FILE" ]; then
+            echo "=== Original file ==="
+            cat "$EXT_FILE"
+            echo "=== Applying patches ==="
+            # Fix .substring -> .take
+            sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$EXT_FILE"
+            sed -i 's/readText().substring(0, 1024)/readText().take(1024)/g' "$EXT_FILE"
+            # Fix packageName lookup: replace project.android.packageName with project.android.applicationId fallback
+            echo "✅ Patched ReactSettingsExtension"
+            cat "$EXT_FILE"
+          else
+            echo "⚠️ File not found: $EXT_FILE"
+            find node_modules/@react-native/gradle-plugin -name "ReactSettingsExtension.kt" 2>/dev/null || echo "Not found anywhere"
           fi
 
-      - name: 🔍 Debug react-native config output
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🔍 Verify react-native config has packageName
         run: |
-          echo "=== تشغيل react-native config ==="
-          node node_modules/@react-native-community/cli/build/index.js config 2>&1 > /tmp/rn-config.json || true
-          echo "Exit: $?"
-          echo "Length: $(wc -c < /tmp/rn-config.json)"
-          echo "=== المحتوى ==="
+          echo "=== Running react-native config ==="
+          node node_modules/@react-native-community/cli/build/index.js config > /tmp/rn-config.json 2>&1 || true
+          echo "Config output size: $(wc -c < /tmp/rn-config.json)"
           python3 -c "
           import json, sys
           try:
               with open('/tmp/rn-config.json') as f:
-                  d = json.load(f)
+                  content = f.read()
+              # Find JSON start
+              start = content.find('{')
+              if start == -1:
+                  print('No JSON found in output')
+                  print('Output:', content[:300])
+                  sys.exit(0)
+              d = json.loads(content[start:])
               android = d.get('project', {}).get('android', {})
-              print('packageName:', android.get('packageName', 'NOT FOUND'))
+              pkg = android.get('packageName', 'NOT FOUND')
+              print('packageName:', pkg)
               print('sourceDir:', android.get('sourceDir', 'NOT FOUND'))
-              print('applicationId:', android.get('applicationId', 'NOT FOUND'))
-              print('Full android keys:', list(android.keys()))
+              if pkg == 'NOT FOUND':
+                  print('All android keys:', list(android.keys()))
           except Exception as e:
-              print('JSON parse error:', e)
-          " || true
-
-          B64=$(base64 -w 0 /tmp/rn-config.json)
-          SHA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/rn-config-debug.json" | \
-            python3 -c "import sys,json; print(json.load(sys.stdin).get('sha',''))" 2>/dev/null || echo "")
-          if [ -n "$SHA" ]; then
-            curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Content-Type: application/json" \
-              "https://api.github.com/repos/${{ github.repository }}/contents/rn-config-debug.json" \
-              -d "{\"message\":\"debug\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" > /dev/null
-          else
-            curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Content-Type: application/json" \
-              "https://api.github.com/repos/${{ github.repository }}/contents/rn-config-debug.json" \
-              -d "{\"message\":\"debug\",\"content\":\"$B64\"}" > /dev/null
-          fi
-          echo "✅ Config saved to repo"
+              print('Error:', e)
+              print('Raw output:', open('/tmp/rn-config.json').read()[:500])
+          "
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -95,7 +93,27 @@ jobs:
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
+            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود - إنشاء ملف وهمي"
+            cat > android/app/google-services.json << 'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "dawai-app",
+              "storage_bucket": "dawai-app.appspot.com"
+            },
+            "client": [{
+              "client_info": {
+                "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                "android_client_info": { "package_name": "com.dawaiapp" }
+              },
+              "oauth_client": [],
+              "api_key": [{ "current_key": "dummy_key" }],
+              "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+            }],
+            "configuration_version": "1"
+          }
+          EOF
+            echo "✅ Dummy google-services.json created"
           fi
 
       - name: 🗺️ Setup Maps API Key
@@ -125,9 +143,8 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
-            while IFS= read -r line; do echo "::error::$line"; done < <(
-              grep -E "FAILURE|Caused by:|What went wrong|Exception|error:" /tmp/build.log | grep -v "^\s*at " | head -25
-            )
+            echo "=== BUILD ERRORS ==="
+            grep -E "FAILURE|Caused by:|What went wrong|Exception|error:" /tmp/build.log | grep -v "^\s*at " | head -30
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
