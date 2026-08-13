@@ -32,6 +32,21 @@ jobs:
       - name: 🔍 Verify node_modules
         run: test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
 
+      - name: 🩹 Patch RN gradle-plugin bug (StringIndexOutOfBoundsException)
+        run: |
+          FILE=$(find node_modules/@react-native/gradle-plugin/src -name "ReactSettingsExtension.kt" 2>/dev/null | head -1)
+          if [ -n "$FILE" ]; then
+            echo "📄 Found: $FILE"
+            # إصلاح الـ bug: substring(0, 1024) → substring(0, minOf(length, 1024))
+            sed -i 's/configOutput\.substring(0, 1024)/configOutput.substring(0, minOf(configOutput.length, 1024))/g' "$FILE"
+            sed -i 's/configOutput\.substring(0, 1024)/configOutput.substring(0, minOf(configOutput.length, 1024))/g' "$FILE"
+            grep -n "substring" "$FILE" && echo "✅ Patched" || echo "⚠️ Pattern not found — checking file"
+            grep -n "1024\|cache\|Cache" "$FILE" | head -10
+          else
+            echo "⚠️ ReactSettingsExtension.kt not found — listing gradle-plugin src:"
+            find node_modules/@react-native/gradle-plugin -name "*.kt" | head -20
+          fi
+
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -77,14 +92,9 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
-            # اكتب الأخطاء كـ GitHub Annotations (تظهر في API)
-            while IFS= read -r line; do
-              echo "::error::$line"
-            done < <(grep -E "FAILURE|error:|Caused by:|What went wrong" /tmp/build.log | head -20)
-            echo "::error::=== LAST 30 LINES ==="
-            tail -30 /tmp/build.log | while IFS= read -r line; do
-              echo "::error::$line"
-            done
+            while IFS= read -r line; do echo "::error::$line"; done < <(
+              grep -E "FAILURE|Caused by:|What went wrong|Exception|error:" /tmp/build.log | grep -v "^\s*at " | head -25
+            )
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
@@ -107,5 +117,5 @@ jobs:
             echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
             echo "📥 حمّل من تبويب **Artifacts**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء — راجع الـ Annotations" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
           fi
