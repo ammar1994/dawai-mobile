@@ -31,7 +31,7 @@ jobs:
 
       - name: 🔍 Verify node_modules
         run: |
-          test -d node_modules/@react-native/gradle-plugin && echo "✅ gradle-plugin OK" || (echo "❌ MISSING" && exit 1)
+          test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -43,34 +43,27 @@ jobs:
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
 
-      - name: 🔥 Setup Firebase (google-services.json)
+      - name: 🔥 Setup Firebase
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
-          else
-            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
           fi
 
       - name: 🗺️ Setup Maps API Key
         run: |
           if [ -n "${{ secrets.MAPS_API_KEY }}" ]; then
-            sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' \
-              android/app/src/main/AndroidManifest.xml
+            sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' android/app/src/main/AndroidManifest.xml
           fi
 
       - name: 🔤 Copy vector-icons fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
-          cp node_modules/react-native-vector-icons/Fonts/*.ttf \
-            android/app/src/main/assets/fonts/ 2>/dev/null || true
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
 
       - name: 🔑 Create Debug Keystore
         run: |
-          keytool -genkeypair -v \
-            -keystore android/app/debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
+          keytool -genkeypair -v -keystore android/app/debug.keystore -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
       - name: 🛠️ Create local.properties
@@ -81,35 +74,58 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace > /tmp/build.log 2>&1 || true
-          BUILD_OK=$(grep -c "BUILD SUCCESSFUL" /tmp/build.log || true)
-          if [ "$BUILD_OK" -gt 0 ]; then
-            echo "✅ BUILD SUCCESS"
-            ls -lh app/build/outputs/apk/debug/
+          grep -q "BUILD SUCCESSFUL" /tmp/build.log && echo "SUCCESS=true" >> $GITHUB_ENV || echo "SUCCESS=false" >> $GITHUB_ENV
+
+      - name: 💾 Save build log to repo (for debugging)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # استخرج أهم أجزاء السجل
+          {
+            echo "=== RUN ${{ github.run_number }} — $(date) ==="
+            echo "=== ERRORS ==="
+            grep -E "FAILURE|error:|Caused by:|What went wrong|Exception|could not" /tmp/build.log | head -40 || echo "(no errors found)"
+            echo ""
+            echo "=== LAST 100 LINES ==="
+            tail -100 /tmp/build.log
+          } > /tmp/build-summary.txt
+          
+          # احسب base64
+          LOG_B64=$(base64 -w 0 /tmp/build-summary.txt)
+          
+          # احصل على SHA إن وجد الملف
+          SHA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/build-debug.log" | \
+            python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || echo "")
+          
+          # ارفع الملف
+          if [ -n "$SHA" ]; then
+            BODY="{"message":"🔍 build log run ${{ github.run_number }}","content":"$LOG_B64","sha":"$SHA"}"
           else
-            echo "❌ BUILD FAILED"
-            # اكتب الخطأ في Step Summary لقراءته عبر API
-            echo "## ❌ Build Log - Errors" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            grep -E "FAILURE|error:|Caused by:|What went wrong|Exception" /tmp/build.log | head -60 >> $GITHUB_STEP_SUMMARY || true
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "--- آخر 80 سطر ---" >> $GITHUB_STEP_SUMMARY
-            tail -80 /tmp/build.log >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+            BODY="{"message":"🔍 build log run ${{ github.run_number }}","content":"$LOG_B64"}"
+          fi
+          
+          curl -s -X PUT \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/build-debug.log" \
+            -d "$BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print('✅ Log saved:', d.get('commit',{}).get('sha','ERROR')[:10])"
+
+      - name: ✅ Check result
+        run: |
+          if [ "$SUCCESS" = "true" ]; then
+            echo "✅ BUILD SUCCESS"
+            ls -lh android/app/build/outputs/apk/debug/
+          else
+            echo "❌ BUILD FAILED — check build-debug.log in repo"
             exit 1
           fi
 
       - name: 📤 Upload APK
-        if: success()
+        if: env.SUCCESS == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: DAWAI-debug-v${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
-
-      - name: 📊 Build Summary
-        if: always()
-        run: |
-          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
-            SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-            echo "✅ APK جاهز — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
-          fi
