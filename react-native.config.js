@@ -3,5 +3,8 @@ module.exports = {
     android: {
       packageName: 'com.dawaiapp',
     },
+    ios: {
+      project: './ios/DawaiApp.xcodeproj',
+    },
   },
 };
