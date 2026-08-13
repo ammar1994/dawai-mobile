@@ -1,3 +1,8 @@
+// plugins{} يجب أن يكون أول شيء — يستخدم pluginManagement من settings.gradle
+plugins {
+    id("com.facebook.react.rootproject")
+}
+
 buildscript {
     ext {
         buildToolsVersion = "35.0.0"
@@ -13,10 +18,8 @@ buildscript {
     }
     dependencies {
         classpath("com.android.tools.build:gradle:8.6.1")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24")
         // Firebase
         classpath("com.google.gms:google-services:4.4.2")
     }
 }
-
-apply plugin: "com.facebook.react.rootproject"
