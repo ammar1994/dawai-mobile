@@ -30,8 +30,7 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: 🔍 Verify node_modules
-        run: |
-          test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
+        run: test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -47,7 +46,6 @@ jobs:
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
-            echo "✅ google-services.json من Secret"
           else
             echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
           fi
@@ -76,11 +74,24 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          if [ $BUILD_EXIT -ne 0 ]; then
+            # اكتب الأخطاء كـ GitHub Annotations (تظهر في API)
+            while IFS= read -r line; do
+              echo "::error::$line"
+            done < <(grep -E "FAILURE|error:|Caused by:|What went wrong" /tmp/build.log | head -20)
+            echo "::error::=== LAST 30 LINES ==="
+            tail -30 /tmp/build.log | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit $BUILD_EXIT
+          fi
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
 
       - name: 📤 Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: DAWAI-debug-v${{ github.run_number }}
@@ -96,5 +107,5 @@ jobs:
             echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
             echo "📥 حمّل من تبويب **Artifacts**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء — راجع الـ Annotations" >> $GITHUB_STEP_SUMMARY
           fi
