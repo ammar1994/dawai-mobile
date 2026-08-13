@@ -32,51 +32,38 @@ jobs:
       - name: 🔍 Verify node_modules
         run: test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
 
-      - name: 🩹 Patch ReactSettingsExtension - fix packageName detection
+      - name: 🩹 Deep patch ReactSettingsExtension
         run: |
           EXT_FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           if [ -f "$EXT_FILE" ]; then
-            echo "=== Original file ==="
+            echo "=== Original ==="
             cat "$EXT_FILE"
-            echo "=== Applying patches ==="
-            # Fix .substring -> .take
+            # Fix substring -> take
             sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$EXT_FILE"
-            sed -i 's/readText().substring(0, 1024)/readText().take(1024)/g' "$EXT_FILE"
-            # Fix packageName lookup: replace project.android.packageName with project.android.applicationId fallback
-            echo "✅ Patched ReactSettingsExtension"
+            sed -i 's/readText()\.substring(0, 1024)/readText().take(1024)/g' "$EXT_FILE"
+            # Fix packageName -> try packageName then applicationId
+            sed -i 's/get("packageName")/get("packageName") ?: get("applicationId")/g' "$EXT_FILE"
+            echo "=== Patched ==="
             cat "$EXT_FILE"
+            echo "✅ ReactSettingsExtension patched"
           else
-            echo "⚠️ File not found: $EXT_FILE"
-            find node_modules/@react-native/gradle-plugin -name "ReactSettingsExtension.kt" 2>/dev/null || echo "Not found anywhere"
+            echo "File not found, searching..."
+            find node_modules/@react-native/gradle-plugin -name "*.kt" | head -20
           fi
 
-      - name: 🔍 Verify react-native config has packageName
+      - name: 🔍 Verify react-native config
         run: |
-          echo "=== Running react-native config ==="
-          node node_modules/@react-native-community/cli/build/index.js config > /tmp/rn-config.json 2>&1 || true
-          echo "Config output size: $(wc -c < /tmp/rn-config.json)"
-          python3 -c "
-          import json, sys
+          node node_modules/@react-native-community/cli/build/index.js config 2>/dev/null | python3 -c "
+          import sys, json
           try:
-              with open('/tmp/rn-config.json') as f:
-                  content = f.read()
-              # Find JSON start
-              start = content.find('{')
-              if start == -1:
-                  print('No JSON found in output')
-                  print('Output:', content[:300])
-                  sys.exit(0)
-              d = json.loads(content[start:])
+              d = json.load(sys.stdin)
               android = d.get('project', {}).get('android', {})
-              pkg = android.get('packageName', 'NOT FOUND')
-              print('packageName:', pkg)
+              print('packageName:', android.get('packageName', 'NOT FOUND'))
+              print('applicationId:', android.get('applicationId', 'NOT FOUND'))
               print('sourceDir:', android.get('sourceDir', 'NOT FOUND'))
-              if pkg == 'NOT FOUND':
-                  print('All android keys:', list(android.keys()))
           except Exception as e:
-              print('Error:', e)
-              print('Raw output:', open('/tmp/rn-config.json').read()[:500])
-          "
+              print('Config parse error:', e)
+          " || echo "Config command failed"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -88,49 +75,53 @@ jobs:
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
 
-      - name: 🔥 Setup Firebase
+      - name: 🔥 Setup Firebase google-services.json
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+            echo "✅ Real google-services.json"
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود - إنشاء ملف وهمي"
-            cat > android/app/google-services.json << 'EOF'
+            cat > android/app/google-services.json << 'JSON_EOF'
           {
             "project_info": {
-              "project_number": "000000000000",
-              "project_id": "dawai-app",
-              "storage_bucket": "dawai-app.appspot.com"
+              "project_number": "123456789000",
+              "project_id": "dawai-app-debug",
+              "storage_bucket": "dawai-app-debug.appspot.com"
             },
             "client": [{
               "client_info": {
-                "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                "mobilesdk_app_id": "1:123456789000:android:abcdef1234567890",
                 "android_client_info": { "package_name": "com.dawaiapp" }
               },
               "oauth_client": [],
-              "api_key": [{ "current_key": "dummy_key" }],
+              "api_key": [{ "current_key": "AIzaSyDummy_key_for_debug_build_only" }],
               "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
             }],
             "configuration_version": "1"
           }
-          EOF
-            echo "✅ Dummy google-services.json created"
+          JSON_EOF
+            echo "⚠️ Using dummy google-services.json"
           fi
 
       - name: 🗺️ Setup Maps API Key
         run: |
           if [ -n "${{ secrets.MAPS_API_KEY }}" ]; then
-            sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' android/app/src/main/AndroidManifest.xml
+            sed -i "s/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g" android/app/src/main/AndroidManifest.xml
           fi
 
       - name: 🔤 Copy vector-icons fonts
         run: |
           mkdir -p android/app/src/main/assets/fonts
           cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
+          echo "Fonts copied: $(ls android/app/src/main/assets/fonts/ | wc -l)"
 
       - name: 🔑 Create Debug Keystore
         run: |
-          keytool -genkeypair -v -keystore android/app/debug.keystore -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android \
+          keytool -genkeypair -v \
+            -keystore android/app/debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
       - name: 🛠️ Create local.properties
@@ -143,8 +134,10 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
-            echo "=== BUILD ERRORS ==="
-            grep -E "FAILURE|Caused by:|What went wrong|Exception|error:" /tmp/build.log | grep -v "^\s*at " | head -30
+            echo ""
+            echo "=== ❌ BUILD ERRORS ==="
+            grep -E "FAILURE|Caused by:|What went wrong|Exception|error:" /tmp/build.log \
+              | grep -v "^\s*at " | head -30
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
