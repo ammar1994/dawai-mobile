@@ -32,23 +32,53 @@ jobs:
       - name: 🔍 Verify node_modules
         run: test -d node_modules/@react-native/gradle-plugin && echo "✅ OK" || (echo "❌ MISSING" && exit 1)
 
-      - name: 🩹 Patch ReactSettingsExtension bug (المسار الصحيح)
+      - name: 🩹 Patch ReactSettingsExtension bug
         run: |
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           if [ -f "$FILE" ]; then
-            echo "✅ الملف موجود: $FILE"
-            echo "--- السطر 162 قبل الإصلاح ---"
-            sed -n '160,165p' "$FILE"
-            # إصلاح: substring(0, 1024) → take(1024) — آمن مع strings أقصر من 1024
             sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$FILE"
-            echo "--- السطر 162 بعد الإصلاح ---"
-            sed -n '160,165p' "$FILE"
-            echo "✅ تم الـ patch بنجاح"
-          else
-            echo "❌ الملف غير موجود — بحث:"
-            find node_modules/@react-native/gradle-plugin -name "ReactSettingsExtension.kt"
-            exit 1
+            sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE"
+            echo "✅ Patched"
           fi
+
+      - name: 🔍 Debug react-native config output
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== تشغيل react-native config ==="
+          node node_modules/@react-native-community/cli/build/index.js config 2>&1 > /tmp/rn-config.json || true
+          echo "Exit: $?"
+          echo "Length: $(wc -c < /tmp/rn-config.json)"
+          echo "=== المحتوى ==="
+          cat /tmp/rn-config.json | python3 -c "
+import sys,json
+try:
+    d=json.load(sys.stdin)
+    android=d.get('project',{}).get('android',{})
+    print('packageName:', android.get('packageName','NOT FOUND'))
+    print('sourceDir:', android.get('sourceDir','NOT FOUND'))
+    print('applicationId:', android.get('applicationId','NOT FOUND'))
+    print('Full android keys:', list(android.keys()))
+except Exception as e:
+    print('JSON parse error:', e)
+    import sys
+    sys.stdin.seek(0)
+" || true
+
+          # احفظ في الـ repo للقراءة عبر API
+          B64=$(base64 -w 0 /tmp/rn-config.json)
+          SHA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/rn-config-debug.json" | \
+            python3 -c "import sys,json; print(json.load(sys.stdin).get('sha',''))" 2>/dev/null || echo "")
+          if [ -n "$SHA" ]; then
+            BODY="{"message":"debug","content":"$B64","sha":"$SHA"}"
+          else
+            BODY="{"message":"debug","content":"$B64"}"
+          fi
+          curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/rn-config-debug.json" \
+            -d "$BODY" > /dev/null && echo "✅ Config saved to repo"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
