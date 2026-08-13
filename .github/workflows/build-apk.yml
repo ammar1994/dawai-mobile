@@ -32,7 +32,6 @@ jobs:
       - name: 🔍 Verify node_modules
         run: |
           test -d node_modules/@react-native/gradle-plugin && echo "✅ gradle-plugin OK" || (echo "❌ MISSING" && exit 1)
-          echo "✅ حزم: $(ls node_modules | wc -l)"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -48,9 +47,8 @@ jobs:
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
-            echo "✅ google-services.json من Secret"
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود — يستخدم الـ placeholder"
+            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
           fi
 
       - name: 🗺️ Setup Maps API Key
@@ -82,15 +80,19 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          BUILD_EXIT=${PIPESTATUS[0]}
-          if [ $BUILD_EXIT -ne 0 ]; then
-            echo "❌ BUILD FAILED — آخر 100 سطر:"
-            tail -100 /tmp/build.log
-            exit $BUILD_EXIT
-          fi
-          echo "✅ BUILD SUCCESS"
-          ls -lh app/build/outputs/apk/debug/
+          ./gradlew assembleDebug --no-daemon --stacktrace > /tmp/build.log 2>&1 || true
+          echo "=== آخر 150 سطر من السجل ===" 
+          tail -150 /tmp/build.log
+          # اخرج بنفس كود الخطأ
+          grep -q "BUILD SUCCESSFUL" /tmp/build.log && exit 0 || exit 1
+
+      - name: 📋 Upload Build Log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-v${{ github.run_number }}
+          path: /tmp/build.log
+          retention-days: 7
 
       - name: 📤 Upload APK
         if: success()
@@ -107,7 +109,6 @@ jobs:
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
             echo "✅ APK جاهز — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
-            echo "📥 حمّل من تبويب Artifacts" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء — راجع الـ logs" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء — حمّل **build-log** من Artifacts لرؤية الخطأ" >> $GITHUB_STEP_SUMMARY
           fi
