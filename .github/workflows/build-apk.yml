@@ -81,18 +81,22 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace > /tmp/build.log 2>&1 || true
-          echo "=== آخر 150 سطر من السجل ===" 
-          tail -150 /tmp/build.log
-          # اخرج بنفس كود الخطأ
-          grep -q "BUILD SUCCESSFUL" /tmp/build.log && exit 0 || exit 1
-
-      - name: 📋 Upload Build Log (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-v${{ github.run_number }}
-          path: /tmp/build.log
-          retention-days: 7
+          BUILD_OK=$(grep -c "BUILD SUCCESSFUL" /tmp/build.log || true)
+          if [ "$BUILD_OK" -gt 0 ]; then
+            echo "✅ BUILD SUCCESS"
+            ls -lh app/build/outputs/apk/debug/
+          else
+            echo "❌ BUILD FAILED"
+            # اكتب الخطأ في Step Summary لقراءته عبر API
+            echo "## ❌ Build Log - Errors" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -E "FAILURE|error:|Caused by:|What went wrong|Exception" /tmp/build.log | head -60 >> $GITHUB_STEP_SUMMARY || true
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "--- آخر 80 سطر ---" >> $GITHUB_STEP_SUMMARY
+            tail -80 /tmp/build.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
 
       - name: 📤 Upload APK
         if: success()
@@ -105,10 +109,7 @@ jobs:
       - name: 📊 Build Summary
         if: always()
         run: |
-          echo "## نتيجة البناء" >> $GITHUB_STEP_SUMMARY
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
             echo "✅ APK جاهز — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ فشل البناء — حمّل **build-log** من Artifacts لرؤية الخطأ" >> $GITHUB_STEP_SUMMARY
           fi
