@@ -12,10 +12,7 @@ plugins {
 }
 
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-    ex.autolinkLibrariesFromCommand(
-        listOf("node", "../node_modules/@react-native-community/cli/build/index.js", "config"),
-        file("../")
-    )
+    ex.autolinkLibrariesFromCommand()
 }
 
 rootProject.name = 'DawaiApp'
