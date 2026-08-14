@@ -1,13 +1,10 @@
-plugins {
-    id("com.facebook.react")
-}
-
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
-apply plugin: "com.google.gms.google-services"   // Firebase
+apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"
 
 react {
-    // الإعدادات الافتراضية — لا تعدّل إلا إذا غيرت موقع index.js
+    // الإعدادات الافتراضية
 }
 
 android {
@@ -22,8 +19,6 @@ android {
         targetSdk      rootProject.ext.targetSdkVersion
         versionCode    1
         versionName    "1.0.0"
-
-        // لـ react-native-vector-icons
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -35,7 +30,6 @@ android {
             keyPassword   "android"
         }
         release {
-            // يُحدَّث عند الرفع للـ Store
             if (project.hasProperty("DAWAI_UPLOAD_STORE_FILE")) {
                 storeFile      file(DAWAI_UPLOAD_STORE_FILE)
                 storePassword  DAWAI_UPLOAD_STORE_PASSWORD
@@ -59,22 +53,18 @@ android {
 }
 
 dependencies {
-    // React Native
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
 
-    // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
 
-    // Firebase BOM
     implementation platform("com.google.firebase:firebase-bom:33.1.0")
     implementation "com.google.firebase:firebase-messaging"
     implementation "com.google.firebase:firebase-analytics"
 
-    // Google Maps (react-native-maps)
     implementation "com.google.android.gms:play-services-maps:18.2.0"
     implementation "com.google.android.gms:play-services-location:21.2.0"
 }
 
-// react-native-vector-icons — يُضيف جميع الـ fonts تلقائياً
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
+
