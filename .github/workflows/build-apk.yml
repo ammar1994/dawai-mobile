@@ -34,31 +34,8 @@ jobs:
           EXT_FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           if [ -f "$EXT_FILE" ]; then
             sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$EXT_FILE"
-            sed -i 's/readText()\.substring(0, 1024)/readText().take(1024)/g' "$EXT_FILE"
             echo "✅ Patched"
           fi
-
-      - name: 🔍 Debug react-native config output
-        run: |
-          echo "=== react-native config ==="
-          node node_modules/@react-native-community/cli/build/index.js config 2>/dev/null | \
-          python3 -c "
-          import sys, json
-          try:
-              content = sys.stdin.read()
-              start = content.find('{')
-              if start >= 0:
-                  d = json.loads(content[start:])
-                  android = d.get('project', {}).get('android', {})
-                  print('packageName:', android.get('packageName', 'NOT FOUND'))
-                  print('applicationId:', android.get('applicationId', 'NOT FOUND'))
-                  print('sourceDir:', android.get('sourceDir', 'NOT FOUND'))
-              else:
-                  print('No JSON found')
-                  print(content[:300])
-          except Exception as e:
-              print('Error:', e)
-          "
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -120,38 +97,25 @@ jobs:
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: 🏗️ Build Debug APK
-        id: build
         working-directory: android
-        continue-on-error: true
         run: |
           chmod +x gradlew
+          set -o pipefail
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+          echo "✅ BUILD SUCCESS"
+          ls -lh app/build/outputs/apk/debug/
 
-      - name: 📋 Print Full Build Errors
-        if: always()
+      - name: 📋 Show errors on failure
+        if: failure()
         run: |
-          echo "=== FULL BUILD LOG TAIL ==="
-          tail -100 /tmp/build.log || true
-          echo ""
+          echo "=== LAST 80 LINES ==="
+          tail -80 /tmp/build.log || true
           echo "=== KEY ERRORS ==="
-          grep -E "FAILURE|Caused by:|What went wrong|Exception|error:|Error:" /tmp/build.log \
-            | grep -v "^\s*at " | head -50 || true
-
-      - name: 📤 Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-v${{ github.run_number }}
-          path: /tmp/build.log
-          retention-days: 7
-
-      - name: ❌ Fail if build failed
-        if: steps.build.outputs.exit_code != '0'
-        run: exit 1
+          grep -E "FAILURE|Caused by:|What went wrong|error:" /tmp/build.log \
+            | grep -v "^\s*at " | head -30 || true
 
       - name: 📤 Upload APK
-        if: steps.build.outputs.exit_code == '0'
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: DAWAI-debug-v${{ github.run_number }}
@@ -165,6 +129,7 @@ jobs:
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
             echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "📥 حمّل من تبويب **Artifacts**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء — راجع artifact **build-log**" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
           fi
