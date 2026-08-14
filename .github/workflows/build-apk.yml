@@ -105,14 +105,36 @@ jobs:
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
 
-      - name: 📋 Show errors on failure
+      - name: 💾 Save build log to repo on failure
         if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "=== LAST 80 LINES ==="
-          tail -80 /tmp/build.log || true
+          echo "=== LAST 100 LINES ==="
+          tail -100 /tmp/build.log
+          echo ""
           echo "=== KEY ERRORS ==="
-          grep -E "FAILURE|Caused by:|What went wrong|error:" /tmp/build.log \
-            | grep -v "^\s*at " | head -30 || true
+          grep -E "FAILURE|Caused by:|What went wrong|error:|Exception" /tmp/build.log \
+            | grep -v "^\s*at " | head -40 || true
+
+          # حفظ الـ log في الـ repo
+          B64=$(base64 -w 0 /tmp/build.log)
+          SHA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/contents/build-error.log" | \
+            python3 -c "import sys,json; print(json.load(sys.stdin).get('sha',''))" 2>/dev/null || echo "")
+          if [ -n "$SHA" ]; then
+            curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/build-error.log" \
+              -d "{\"message\":\"ci: save build error log\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" > /dev/null
+          else
+            curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.github.com/repos/${{ github.repository }}/contents/build-error.log" \
+              -d "{\"message\":\"ci: save build error log\",\"content\":\"$B64\"}" > /dev/null
+          fi
+          echo "✅ Log saved to repo as build-error.log"
+          exit 1
 
       - name: 📤 Upload APK
         if: success()
@@ -129,7 +151,6 @@ jobs:
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
             echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
-            echo "📥 حمّل من تبويب **Artifacts**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء — راجع ملف build-error.log في الـ repo" >> $GITHUB_STEP_SUMMARY
           fi
