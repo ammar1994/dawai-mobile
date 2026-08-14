@@ -29,14 +29,52 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🩹 Patch ReactSettingsExtension bug
+      - name: 🩹 Patch ReactSettingsExtension (substring bug)
         run: |
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           if [ -f "$FILE" ]; then
             sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE"
             echo "✅ Patched ReactSettingsExtension"
           else
-            echo "ℹ️ File not found — skipping patch"
+            echo "ℹ️ ReactSettingsExtension not found — skipping"
+          fi
+
+      - name: 🔧 Patch react-native-screens codegen spec
+        run: |
+          # Fix: accessibilityContainerViewIsModal has type "undefined" which crashes react-native config
+          COUNT=0
+          while IFS= read -r -d '' f; do
+            if grep -q "accessibilityContainerViewIsModal" "$f" 2>/dev/null; then
+              sed -i '/accessibilityContainerViewIsModal/d' "$f"
+              echo "✅ Patched: $f"
+              COUNT=$((COUNT+1))
+            fi
+          done < <(find node_modules/react-native-screens -type f \( -name "*.ts" -o -name "*.js" \) -print0 2>/dev/null)
+          echo "Total patched: $COUNT files"
+
+      - name: 🔍 Verify react-native config
+        run: |
+          echo "=== Testing react-native config ==="
+          node node_modules/@react-native-community/cli/build/index.js config > /tmp/rn-config.json 2>/tmp/rn-config-err.txt
+          EXIT=$?
+          if [ $EXIT -ne 0 ]; then
+            echo "❌ react-native config FAILED (exit $EXIT)"
+            cat /tmp/rn-config-err.txt
+          else
+            echo "✅ react-native config succeeded"
+            wc -c /tmp/rn-config.json
+            # Count linked native dependencies
+            python3 -c "
+import json, sys
+try:
+    d = json.load(open('/tmp/rn-config.json'))
+    deps = d.get('dependencies', {})
+    native = [k for k,v in deps.items() if v.get('platforms',{}).get('android')]
+    print(f'Native deps with Android: {len(native)}')
+    for n in native[:5]: print(f'  - {n}')
+except Exception as e:
+    print(f'Parse error: {e}')
+"
           fi
 
       - name: 🤖 Setup Android SDK
@@ -54,7 +92,7 @@ jobs:
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
+            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود — يمكن إضافته لاحقاً"
           fi
 
       - name: 🗺️ Maps API Key
@@ -84,10 +122,9 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
-            echo "=== LAST 50 LINES ===" 
-            tail -50 /tmp/build.log
+            echo ""
             echo "=== KEY ERRORS ==="
-            grep -E "^(error:|FAILED|> Task|Caused by:|Exception)" /tmp/build.log | tail -30 || true
+            grep -E "(^error:|FAILED|Caused by:|> Task|Unknown prop|does not exist)" /tmp/build.log | tail -40 || true
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
@@ -112,9 +149,7 @@ jobs:
           else
             echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
             if [ -f /tmp/build.log ]; then
-              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-              grep -E "(error:|FAILED|Caused by:)" /tmp/build.log | tail -20 >> $GITHUB_STEP_SUMMARY || true
-              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              echo  >> $GITHUB_STEP_SUMMARY
             fi
           fi
 
