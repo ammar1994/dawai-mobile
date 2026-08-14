@@ -34,7 +34,9 @@ jobs:
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           if [ -f "$FILE" ]; then
             sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE"
-            echo "✅ Patched"
+            echo "✅ Patched ReactSettingsExtension"
+          else
+            echo "ℹ️ File not found — skipping patch"
           fi
 
       - name: 🤖 Setup Android SDK
@@ -79,11 +81,20 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          if [ $BUILD_EXIT -ne 0 ]; then
+            echo "=== LAST 50 LINES ===" 
+            tail -50 /tmp/build.log
+            echo "=== KEY ERRORS ==="
+            grep -E "^(error:|FAILED|> Task|Caused by:|Exception)" /tmp/build.log | tail -30 || true
+            exit $BUILD_EXIT
+          fi
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
 
       - name: 📤 Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: DAWAI-debug-v${{ github.run_number }}
@@ -100,4 +111,10 @@ jobs:
             echo "📥 حمّل من تبويب **Artifacts** أعلاه" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
+            if [ -f /tmp/build.log ]; then
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              grep -E "(error:|FAILED|Caused by:)" /tmp/build.log | tail -20 >> $GITHUB_STEP_SUMMARY || true
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
+
