@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ⚙️ Setup Node 20
         uses: actions/setup-node@v4
@@ -27,14 +29,19 @@ jobs:
           distribution: temurin
 
       - name: 📦 Install dependencies
-        run: npm install --legacy-peer-deps
-
-      - name: 🩹 Patch ReactSettingsExtension
         run: |
-          EXT_FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
-          if [ -f "$EXT_FILE" ]; then
-            sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$EXT_FILE"
-            echo "✅ Patched"
+          npm install --legacy-peer-deps
+          # تحقق من @react-native-community/cli
+          node_modules/.bin/react-native --version 2>&1 || echo "⚠️ CLI not found"
+
+      - name: 🩹 Patch ReactSettingsExtension bug
+        run: |
+          FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
+          if [ -f "$FILE" ]; then
+            sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE"
+            echo "✅ Patched: $(grep -c 'take(1024)' $FILE) occurrences"
+          else
+            echo "⚠️ File not found"
           fi
 
       - name: 🤖 Setup Android SDK
@@ -52,31 +59,13 @@ jobs:
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
           else
-            cat > android/app/google-services.json << 'JSON_EOF'
-          {
-            "project_info": {
-              "project_number": "123456789000",
-              "project_id": "dawai-app-debug",
-              "storage_bucket": "dawai-app-debug.appspot.com"
-            },
-            "client": [{
-              "client_info": {
-                "mobilesdk_app_id": "1:123456789000:android:abcdef1234567890",
-                "android_client_info": { "package_name": "com.dawaiapp" }
-              },
-              "oauth_client": [],
-              "api_key": [{ "current_key": "AIzaSyDummy_key_for_debug_build_only" }],
-              "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-            }],
-            "configuration_version": "1"
-          }
-          JSON_EOF
+            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
           fi
 
       - name: 🗺️ Maps API Key
         run: |
           if [ -n "${{ secrets.MAPS_API_KEY }}" ]; then
-            sed -i "s/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g" android/app/src/main/AndroidManifest.xml
+            sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' android/app/src/main/AndroidManifest.xml
           fi
 
       - name: 🔤 Copy fonts
@@ -86,11 +75,8 @@ jobs:
 
       - name: 🔑 Debug Keystore
         run: |
-          keytool -genkeypair -v \
-            -keystore android/app/debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
+          keytool -genkeypair -v -keystore android/app/debug.keystore -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
       - name: 🛠️ local.properties
@@ -100,44 +86,37 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          set -o pipefail
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          echo "✅ BUILD SUCCESS"
-          ls -lh app/build/outputs/apk/debug/
+          echo "BUILD_EXIT=${PIPESTATUS[0]}" >> $GITHUB_ENV
 
-      - name: 💾 Save build log to repo on failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 💾 حفظ الـ log عبر git push
+        if: always()
         run: |
-          echo "=== LAST 100 LINES ==="
-          tail -100 /tmp/build.log
-          echo ""
-          echo "=== KEY ERRORS ==="
-          grep -E "FAILURE|Caused by:|What went wrong|error:|Exception" /tmp/build.log \
-            | grep -v "^\s*at " | head -40 || true
-
-          # حفظ الـ log في الـ repo
-          B64=$(base64 -w 0 /tmp/build.log)
-          SHA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            "https://api.github.com/repos/${{ github.repository }}/contents/build-error.log" | \
-            python3 -c "import sys,json; print(json.load(sys.stdin).get('sha',''))" 2>/dev/null || echo "")
-          if [ -n "$SHA" ]; then
-            curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Content-Type: application/json" \
-              "https://api.github.com/repos/${{ github.repository }}/contents/build-error.log" \
-              -d "{\"message\":\"ci: save build error log\",\"content\":\"$B64\",\"sha\":\"$SHA\"}" > /dev/null
-          else
-            curl -s -X PUT -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Content-Type: application/json" \
-              "https://api.github.com/repos/${{ github.repository }}/contents/build-error.log" \
-              -d "{\"message\":\"ci: save build error log\",\"content\":\"$B64\"}" > /dev/null
+          BUILD_OK=$(grep -c "BUILD SUCCESSFUL" /tmp/build.log 2>/dev/null || echo 0)
+          if [ "$BUILD_OK" -gt 0 ]; then
+            echo "✅ BUILD SUCCESS"
+            exit 0
           fi
-          echo "✅ Log saved to repo as build-error.log"
+          # استخرج الأخطاء وأحفظها
+          {
+            echo "=== ERRORS ==="
+            grep -E "FAILURE|Caused by:|What went wrong|error:|Exception|packageName|autolinking" /tmp/build.log \
+              | grep -v "^\s*at " | head -50
+            echo ""
+            echo "=== LAST 80 LINES ==="
+            tail -80 /tmp/build.log
+          } > BUILD_ERROR.txt
+          # git push الـ file
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add BUILD_ERROR.txt
+          git commit -m "ci: build error log run ${{ github.run_number }}" --allow-empty
+          git push origin HEAD:main 2>&1 | tail -5
+          echo "✅ Build error saved to BUILD_ERROR.txt in repo"
           exit 1
 
       - name: 📤 Upload APK
-        if: success()
+        if: env.BUILD_EXIT == '0'
         uses: actions/upload-artifact@v4
         with:
           name: DAWAI-debug-v${{ github.run_number }}
@@ -147,10 +126,9 @@ jobs:
       - name: 📊 Build Summary
         if: always()
         run: |
-          echo "## نتيجة البناء" >> $GITHUB_STEP_SUMMARY
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-            echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **APK جاهز** — $SIZE" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء — راجع ملف build-error.log في الـ repo" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء — راجع BUILD_ERROR.txt في الـ repo" >> $GITHUB_STEP_SUMMARY
           fi
