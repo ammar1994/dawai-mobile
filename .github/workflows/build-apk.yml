@@ -41,16 +41,15 @@ jobs:
 
       - name: 🔧 Patch react-native-screens codegen spec
         run: |
-          # Fix: accessibilityContainerViewIsModal has type "undefined" which crashes react-native config
           COUNT=0
-          while IFS= read -r -d '' f; do
+          for f in $(find node_modules/react-native-screens -type f \( -name "*.ts" -o -name "*.js" \) 2>/dev/null); do
             if grep -q "accessibilityContainerViewIsModal" "$f" 2>/dev/null; then
               sed -i '/accessibilityContainerViewIsModal/d' "$f"
-              echo "✅ Patched: $f"
+              echo "Patched: $f"
               COUNT=$((COUNT+1))
             fi
-          done < <(find node_modules/react-native-screens -type f \( -name "*.ts" -o -name "*.js" \) -print0 2>/dev/null)
-          echo "Total patched: $COUNT files"
+          done
+          echo "✅ Patched $COUNT files"
 
       - name: 🔍 Verify react-native config
         run: |
@@ -60,22 +59,16 @@ jobs:
           if [ $EXIT -ne 0 ]; then
             echo "❌ react-native config FAILED (exit $EXIT)"
             cat /tmp/rn-config-err.txt
-          else
-            echo "✅ react-native config succeeded"
-            wc -c /tmp/rn-config.json
-            # Count linked native dependencies
-            python3 -c "
-import json, sys
-try:
-    d = json.load(open('/tmp/rn-config.json'))
-    deps = d.get('dependencies', {})
-    native = [k for k,v in deps.items() if v.get('platforms',{}).get('android')]
-    print(f'Native deps with Android: {len(native)}')
-    for n in native[:5]: print(f'  - {n}')
-except Exception as e:
-    print(f'Parse error: {e}')
-"
+            exit 1
           fi
+          echo "✅ react-native config succeeded"
+          wc -c /tmp/rn-config.json
+          node -e "
+            const d = JSON.parse(require('fs').readFileSync('/tmp/rn-config.json','utf8'));
+            const native = Object.entries(d.dependencies||{}).filter(([,v])=>v.platforms&&v.platforms.android);
+            console.log('Native Android deps:', native.length);
+            native.slice(0,8).forEach(([k])=>console.log(' -', k));
+          "
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -92,7 +85,7 @@ except Exception as e:
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود — يمكن إضافته لاحقاً"
+            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
           fi
 
       - name: 🗺️ Maps API Key
@@ -124,7 +117,7 @@ except Exception as e:
           if [ $BUILD_EXIT -ne 0 ]; then
             echo ""
             echo "=== KEY ERRORS ==="
-            grep -E "(^error:|FAILED|Caused by:|> Task|Unknown prop|does not exist)" /tmp/build.log | tail -40 || true
+            grep -E "(^error:|FAILED|Caused by:|Unknown prop|does not exist)" /tmp/build.log | tail -40 || true
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
@@ -145,11 +138,6 @@ except Exception as e:
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
             echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
-            echo "📥 حمّل من تبويب **Artifacts** أعلاه" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
-            if [ -f /tmp/build.log ]; then
-              echo  >> $GITHUB_STEP_SUMMARY
-            fi
           fi
-
