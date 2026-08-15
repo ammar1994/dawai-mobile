@@ -35,51 +35,42 @@ jobs:
           if [ -f "$FILE" ]; then
             sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE"
             echo "✅ Patched ReactSettingsExtension"
-          else
-            echo "ℹ️ Not found — skipping"
           fi
 
-      - name: 🔧 Patch codegen specs (fix undefined prop types)
+      - name: 🔧 Patch react-native-screens spec
         run: |
-          # Fix all packages that have undefined prop types in codegen specs
-          for f in $(find node_modules -type f \( -name "*.ts" -o -name "*.js" \) \
-                     -path "*/src/fabric/*" -o -path "*/src/specs/*" \
-                     2>/dev/null | head -500); do
-            if grep -q ": *undefined" "$f" 2>/dev/null; then
-              sed -i 's/: *undefined/: boolean/g' "$f"
-              echo "Patched type: $f"
-            fi
-          done
-          # Also patch accessibilityContainerViewIsModal specifically
-          for f in $(find node_modules/react-native-screens -type f \
-                     \( -name "*.ts" -o -name "*.js" \) 2>/dev/null); do
+          for f in $(find node_modules/react-native-screens -type f \( -name "*.ts" -o -name "*.js" \) 2>/dev/null); do
             if grep -q "accessibilityContainerViewIsModal" "$f" 2>/dev/null; then
               sed -i '/accessibilityContainerViewIsModal/d' "$f"
-              echo "Removed prop: $f"
+              echo "Patched: $f"
             fi
           done
-          echo "✅ Spec patching complete"
+          echo "✅ Done"
 
       - name: 🔍 Diagnose react-native config
+        continue-on-error: true
         run: |
-          echo "=== react-native config output ==="
+          set +e
           node node_modules/@react-native-community/cli/build/index.js config \
-            > /tmp/rn-config.json 2>/tmp/rn-config-err.txt || true
+            > /tmp/rn-config.json 2>/tmp/rn-config-err.txt
           EXIT=$?
-          echo "Exit code: $EXIT"
+          set -e
+          echo "=== Exit code: $EXIT ==="
           if [ $EXIT -ne 0 ]; then
-            echo "=== ERRORS ==="
+            echo "❌ FAILED — full error:"
             cat /tmp/rn-config-err.txt
           else
-            echo "✅ Config OK"
+            BYTES=$(wc -c < /tmp/rn-config.json)
+            echo "✅ Config OK — $BYTES bytes"
             node -e "
-              const fs = require('fs');
-              const d = JSON.parse(fs.readFileSync('/tmp/rn-config.json','utf8'));
-              const native = Object.entries(d.dependencies||{})
-                .filter(([,v])=>v.platforms&&v.platforms.android);
-              console.log('Android deps:', native.length);
-              native.forEach(([k])=>console.log(' -', k));
-            "
+              try {
+                var d = JSON.parse(require('fs').readFileSync('/tmp/rn-config.json','utf8'));
+                var deps = d.dependencies || {};
+                var native = Object.keys(deps).filter(function(k){ return deps[k].platforms && deps[k].platforms.android; });
+                console.log('Android native deps: ' + native.length);
+                native.forEach(function(k){ console.log('  - ' + k); });
+              } catch(e) { console.log('Parse error: ' + e.message); }
+            " || true
           fi
 
       - name: 🤖 Setup Android SDK
@@ -128,7 +119,7 @@ jobs:
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
             echo "=== KEY ERRORS ==="
-            grep -E "(^error:|FAILED|Caused by:|Unknown prop|does not exist|Exception)" \
+            grep -E "(^error:|FAILED|Caused by:|Unknown prop|does not exist)" \
               /tmp/build.log | tail -40 || true
             exit $BUILD_EXIT
           fi
