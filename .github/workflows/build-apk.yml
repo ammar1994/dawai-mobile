@@ -46,7 +46,7 @@ jobs:
               sed -i 's/WithDefault<boolean, undefined>/boolean/g' "$f"
               sed -i 's/WithDefault<string, undefined>/string/g' "$f"
             done
-          echo "✅ Done"
+          echo "✅ Codegen patches done"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -78,33 +78,56 @@ jobs:
       - name: 🛠️ local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: 🔨 Step 1 — mergeDebugResources only
+      - name: 📦 Download dependencies (trigger AAR caching)
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew mergeDebugResources --no-daemon 2>&1 || true
-          echo "=== البحث عن الملفات المدمجة ==="
-          find app/build/intermediates -name "values.xml" 2>/dev/null | head -10
-          find app/build/intermediates -name "*.xml" 2>/dev/null | xargs grep -l "editTextBackgroundMode" 2>/dev/null | head -5
+          ./gradlew dependencies --no-daemon -q 2>/dev/null || true
+          echo "✅ Dependencies downloaded"
 
-      - name: 🩹 Patch merged resources (editTextBackgroundMode fix)
-        working-directory: android
+      - name: 🩹 Patch react-android AAR (editTextBackgroundMode fix)
         run: |
-          echo "=== البحث والتصحيح في build intermediates ==="
-          PATCHED=0
-          find app/build -name "*.xml" 2>/dev/null | while read f; do
-            if grep -q "editTextBackgroundMode" "$f" 2>/dev/null; then
-              sed -i '/editTextBackgroundMode/d' "$f"
-              echo "  ✅ Patched: $f"
-              PATCHED=$((PATCHED+1))
+          echo "=== البحث عن react-android AAR في Gradle cache ==="
+          GRADLE_CACHE="$HOME/.gradle/caches"
+          
+          # ابحث عن الـ AAR
+          AARS=$(find "$GRADLE_CACHE" -name "react-android*.aar" 2>/dev/null)
+          echo "Found AARs:"
+          echo "$AARS"
+          
+          # ابحث في كل الـ AARs وكذلك في أي XML في الـ cache
+          find "$GRADLE_CACHE" -name "*.aar" 2>/dev/null | while read AAR; do
+            if unzip -p "$AAR" "res/values/values.xml" 2>/dev/null | grep -q "editTextBackgroundMode"; then
+              echo "  🎯 Found in: $AAR"
+              # استخرج وصلح وأعد الضغط
+              TMP=$(mktemp -d)
+              cp "$AAR" "$TMP/orig.aar"
+              cd "$TMP"
+              unzip -q orig.aar
+              if grep -q "editTextBackgroundMode" res/values/values.xml 2>/dev/null; then
+                sed -i '/editTextBackgroundMode/d' res/values/values.xml
+                echo "  ✅ Patched res/values/values.xml"
+              fi
+              # أعد الضغط
+              zip -q -r patched.aar . -x "orig.aar"
+              cp patched.aar "$AAR"
+              echo "  ✅ AAR updated: $AAR"
+              cd -
+              rm -rf "$TMP"
             fi
           done
-          echo "Done. Patched $PATCHED files"
-          # تحقق أنه اختفى
-          REMAINING=$(find app/build -name "*.xml" -exec grep -l "editTextBackgroundMode" {} \; 2>/dev/null | wc -l)
-          echo "Remaining files with attribute: $REMAINING"
+          
+          # أيضاً ابحث في الـ exploded AARs
+          find "$GRADLE_CACHE" -name "values.xml" 2>/dev/null | while read F; do
+            if grep -q "editTextBackgroundMode" "$F" 2>/dev/null; then
+              sed -i '/editTextBackgroundMode/d' "$F"
+              echo "  ✅ Patched exploded: $F"
+            fi
+          done
+          
+          echo "✅ AAR patch complete"
 
-      - name: 🏗️ Step 2 — Full Build (APK)
+      - name: 🏗️ Build Debug APK
         working-directory: android
         run: |
           set -o pipefail
@@ -146,5 +169,5 @@ jobs:
             echo "✅ **APK جاهز** — $SIZE" >> $GITHUB_STEP_SUMMARY
             echo "📥 حمّل من تبويب **Artifacts**" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء — راجع build-error.log في الـ repo" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء — راجع build-error.log" >> $GITHUB_STEP_SUMMARY
           fi
