@@ -1,29 +1,49 @@
-=== Run #700 ===
+=== Run #702 ===
 === KEY ERRORS ===
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCircleManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCircleManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsUrlTileManagerInterface.java:14: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsUrlTileManagerInterface.java:16: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsMarkerManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsMarkerManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCalloutManagerInterface.java:13: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCalloutManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsGooglePolygonManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsGooglePolygonManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsMapViewManagerInterface.java:16: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsMapViewManagerInterface.java:18: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsOverlayManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsOverlayManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsPolylineManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsPolylineManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsWMSTileManagerInterface.java:14: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsWMSTileManagerInterface.java:16: error: cannot find symbol
-FAILURE: Build failed with an exception.
-* What went wrong:
-* Exception is:
+> Task :react-native-maps:compileDebugJavaWithJavac FAILED
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/MapViewManager.java:28: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/MapViewManager.java:29: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/MapViewManager.java:44: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/MapViewManager.java:47: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/WMSTileManager.java:11: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/WMSTileManager.java:12: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/WMSTileManager.java:19: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/WMSTileManager.java:26: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/PolylineManager.java:16: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/PolylineManager.java:17: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/PolylineManager.java:24: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/PolylineManager.java:35: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/CircleManager.java:12: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/CircleManager.java:13: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/CircleManager.java:20: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/CircleManager.java:25: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/MarkerManager.java:18: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/MarkerManager.java:19: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/MarkerManager.java:29: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/MarkerManager.java:35: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/PolygonManager.java:12: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/PolygonManager.java:13: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/PolygonManager.java:20: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/PolygonManager.java:25: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/CalloutManager.java:12: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/CalloutManager.java:13: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/CalloutManager.java:21: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/CalloutManager.java:26: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/OverlayManager.java:12: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/OverlayManager.java:13: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/OverlayManager.java:22: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/OverlayManager.java:27: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/UrlTileManager.java:11: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/UrlTileManager.java:12: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/UrlTileManager.java:20: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/UrlTileManager.java:27: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/MapViewManager.java:48: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/rnmaps/fabric/WMSTileManager.java:27: error: cannot find symbol
 org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':react-native-maps:compileDebugJavaWithJavac'.
 Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+
 === LAST 80 LINES ===
+	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$1(BuildCacheStep.java:75)
 	at org.gradle.internal.Either$Right.fold(Either.java:175)
 	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
@@ -101,5 +121,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 10m 19s
-218 actionable tasks: 218 executed
+BUILD FAILED in 7m 51s
+250 actionable tasks: 250 executed
