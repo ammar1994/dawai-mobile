@@ -61,11 +61,6 @@ jobs:
             sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' android/app/src/main/AndroidManifest.xml
           fi
 
-      - name: 🔤 Copy fonts
-        run: |
-          mkdir -p android/app/src/main/assets/fonts
-          cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
-
       - name: 🔑 Debug Keystore
         run: |
           keytool -genkeypair -v -keystore android/app/debug.keystore -alias androiddebugkey \
@@ -83,7 +78,7 @@ jobs:
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
             echo "=== KEY ERRORS ==="
-            grep -E "(FAILED$|Caused by:|error:|Unknown prop|cannot find symbol)" \
+            grep -E "(FAILED$|Caused by:|^e:| error:|Unknown prop|cannot find symbol|Duplicate)" \
               /tmp/build.log | head -30 || true
             exit $BUILD_EXIT
           fi
@@ -97,11 +92,8 @@ jobs:
             echo "=== Run #${{ github.run_number }} ==="
             echo ""
             echo "=== KEY ERRORS ==="
-            grep -E "(FAILED$|Caused by:|^e:| error:|Unknown prop|cannot find symbol)" \
+            grep -E "(FAILED$|Caused by:|^e:| error:|Unknown prop|cannot find symbol|Duplicate)" \
               /tmp/build.log | head -60 || true
-            echo ""
-            echo "=== FULL LOG AROUND FAILED TASK ==="
-            grep -n "FAILED\|^e:\| error:" /tmp/build.log | head -30 || true
             echo ""
             echo "=== LAST 150 LINES ==="
             tail -150 /tmp/build.log
