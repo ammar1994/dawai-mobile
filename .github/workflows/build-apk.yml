@@ -5,6 +5,9 @@ on:
   push:
     branches: [ main, master ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Debug APK
@@ -29,59 +32,22 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🩹 Patch ReactSettingsExtension (substring bug)
+      - name: 🩹 Patch ReactSettingsExtension bug
         run: |
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
-          if [ -f "$FILE" ]; then
-            sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE"
-            echo "✅ Patched ReactSettingsExtension"
-          fi
+          [ -f "$FILE" ] && sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE" && echo "✅ Patched"
 
-      - name: 🔧 Patch codegen specs (undefined prop types)
+      - name: 🔧 Patch codegen specs
         run: |
-          echo "=== Searching ALL files for accessibilityContainerViewIsModal ==="
-          find node_modules -type f 2>/dev/null \
-            | xargs grep -rl "accessibilityContainerViewIsModal" 2>/dev/null \
-            | while read f; do
-                sed -i '/accessibilityContainerViewIsModal/d' "$f"
-                echo "  Patched: $f"
-              done
-          echo ""
-          echo "=== Searching for WithDefault.*undefined codegen bug ==="
-          find node_modules -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" \) 2>/dev/null \
-            | xargs grep -rl "WithDefault.*undefined" 2>/dev/null \
-            | while read f; do
-                sed -i 's/WithDefault<boolean, undefined>/boolean/g' "$f"
-                sed -i 's/WithDefault<string, undefined>/string/g' "$f"
-                echo "  Fixed WithDefault: $f"
-              done
-          echo "✅ Codegen spec patching complete"
-
-      - name: 🔍 Verify react-native config
-        run: |
-          set +e
-          node node_modules/@react-native-community/cli/build/index.js config \
-            > /tmp/rn-config.json 2>/tmp/rn-config-err.txt
-          EXIT=$?
-          set -e
-          echo "Exit code: $EXIT"
-          if [ $EXIT -ne 0 ]; then
-            echo "::warning::react-native config failed (exit $EXIT)"
-            cat /tmp/rn-config-err.txt | head -30
-          else
-            BYTES=$(wc -c < /tmp/rn-config.json)
-            echo "✅ Config OK — $BYTES bytes"
-            node -e "
-              try {
-                var d=JSON.parse(require('fs').readFileSync('/tmp/rn-config.json','utf8'));
-                var n=Object.keys(d.dependencies||{}).filter(function(k){
-                  return d.dependencies[k].platforms&&d.dependencies[k].platforms.android;
-                });
-                console.log('Android native deps: '+n.length);
-                n.forEach(function(k){console.log('  - '+k);});
-              } catch(e){console.log('parse err:'+e.message);}
-            " || true
-          fi
+          find node_modules -type f \( -name "*.ts" -o -name "*.js" \) 2>/dev/null | \
+            xargs grep -rl "WithDefault.*undefined\|accessibilityContainerViewIsModal" 2>/dev/null | \
+            while read f; do
+              sed -i '/accessibilityContainerViewIsModal/d' "$f"
+              sed -i 's/WithDefault<boolean, undefined>/boolean/g' "$f"
+              sed -i 's/WithDefault<string, undefined>/string/g' "$f"
+              echo "  Patched: $f"
+            done
+          echo "✅ Done"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -95,17 +61,14 @@ jobs:
 
       - name: 🔥 Setup Firebase
         run: |
-          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
-            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
-          else
-            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
-          fi
+          [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ] && \
+            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json || \
+            echo "⚠️ GOOGLE_SERVICES_JSON not set"
 
       - name: 🗺️ Maps API Key
         run: |
-          if [ -n "${{ secrets.MAPS_API_KEY }}" ]; then
-            sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' android/app/src/main/AndroidManifest.xml
-          fi
+          [ -n "${{ secrets.MAPS_API_KEY }}" ] && \
+            sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' android/app/src/main/AndroidManifest.xml || true
 
       - name: 🔤 Copy fonts
         run: |
@@ -125,25 +88,50 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
+          set -o pipefail
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
-          BUILD_EXIT=${PIPESTATUS[0]}
-          if [ $BUILD_EXIT -ne 0 ]; then
-            echo ""
-            echo "=== KEY ERRORS ==="
-            grep -E "(^error:|FAILED$|Caused by:|Unknown prop|does not exist|Exception:)" \
-              /tmp/build.log | grep -v "^$" | head -50 || true
-            exit $BUILD_EXIT
-          fi
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
 
-      - name: 📋 Upload build log
+      - name: 💾 Save build error to repo
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/github-script@v7
         with:
-          name: build-log-v${{ github.run_number }}
-          path: /tmp/build.log
-          retention-days: 7
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            try {
+              const full = fs.readFileSync('/tmp/build.log', 'utf8');
+              // استخرج الأخطاء المهمة + آخر 100 سطر
+              const lines = full.split('\n');
+              const errors = lines.filter(l => /FAILURE|Caused by:|What went wrong|error:|Exception/.test(l) && !/^\s*at /.test(l));
+              const last100 = lines.slice(-100);
+              const content = [
+                `=== Run #${context.runNumber} ===`,
+                `=== KEY ERRORS ===`,
+                ...errors.slice(0, 40),
+                `=== LAST 100 LINES ===`,
+                ...last100
+              ].join('\n');
+              const encoded = Buffer.from(content).toString('base64');
+              let sha = undefined;
+              try {
+                const {data} = await github.rest.repos.getContent({
+                  owner: context.repo.owner, repo: context.repo.repo, path: 'build-error.log'
+                });
+                sha = data.sha;
+              } catch(e) {}
+              await github.rest.repos.createOrUpdateFileContents({
+                owner: context.repo.owner, repo: context.repo.repo,
+                path: 'build-error.log',
+                message: `ci: build error log run ${context.runNumber}`,
+                content: encoded,
+                ...(sha ? {sha} : {})
+              });
+              core.info('✅ Saved build-error.log to repo');
+            } catch(e) {
+              core.warning('Failed to save log: ' + e.message);
+            }
 
       - name: 📤 Upload APK
         if: success()
@@ -153,13 +141,12 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: 📊 Build Summary
+      - name: 📊 Summary
         if: always()
         run: |
-          echo "## نتيجة البناء" >> $GITHUB_STEP_SUMMARY
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-            echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "✅ APK جاهز — $SIZE" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء — راجع build-log artifact" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء — راجع build-error.log في الـ repo" >> $GITHUB_STEP_SUMMARY
           fi
