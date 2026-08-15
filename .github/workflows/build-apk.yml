@@ -32,19 +32,25 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🔍 Debug react-native-screens spec
-        run: |
-          echo "=== react-native-screens version ==="
-          node -e "console.log(require('./node_modules/react-native-screens/package.json').version)"
-          echo "=== NativeWindowManagerSpec.js ==="
-          find node_modules/react-native-screens -name "*.js" | xargs grep -l "generateCodegenSchema" 2>/dev/null | head -5 || true
-          echo "=== Running codegen test ==="
-          node -e "require('./node_modules/react-native-screens')" 2>&1 || true
-
       - name: 🩹 Patch ReactSettingsExtension bug
         run: |
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           [ -f "$FILE" ] && sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE" && echo "✅ Patched" || echo "⏭️ Skip"
+
+      - name: 🔧 Patch react-native-screens codegen (accessibilityContainerViewIsModal undefined)
+        run: |
+          SCREENS_SPEC="node_modules/react-native-screens/src/specs/NativeScreensModule.ts"
+          if [ -f "$SCREENS_SPEC" ]; then
+            sed -i '/accessibilityContainerViewIsModal/d' "$SCREENS_SPEC"
+            echo "✅ Patched NativeScreensModule.ts"
+          fi
+
+          find node_modules/react-native-screens/src -type f \( -name "*.ts" -o -name "*.tsx" \) 2>/dev/null | while read f; do
+            sed -i '/accessibilityContainerViewIsModal/d' "$f"
+            sed -i 's/WithDefault<boolean, undefined>/WithDefault<boolean, false>/g' "$f"
+            sed -i 's/WithDefault<string, undefined>/WithDefault<string, ''''''>/g' "$f"
+          done
+          echo "✅ Done patching react-native-screens"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -92,8 +98,11 @@ jobs:
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
             echo "=== KEY ERRORS ==="
-            grep -E "(FAILED|error:|cannot find symbol|Caused by:|finished with non-zero)" \
-              /tmp/build.log | head -40 || true
+            grep -E "(FAILED$|Caused by:|cannot find symbol|Unknown prop type|does not exist)" \
+              /tmp/build.log | head -30 || true
+            echo ""
+            echo "=== CONTEXT AROUND FAILURE ==="
+            grep -n "FAILED\|Error:" /tmp/build.log | head -20 || true
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
@@ -105,11 +114,8 @@ jobs:
           {
             echo "=== Run #${{ github.run_number }} ==="
             echo "=== KEY ERRORS ==="
-            grep -E "(FAILED|error:|cannot find symbol|Caused by:|finished with non-zero|Exception)" \
-              /tmp/build.log | head -60 || true
-            echo ""
-            echo "=== CONTEXT AROUND generateCodegenSchema FAILURE ==="
-            grep -n "generateCodegenSchema\|non-zero\|node.*error\|Error:" /tmp/build.log | head -40 || true
+            grep -E "(FAILED$|Caused by:|cannot find symbol|Unknown prop type|does not exist)" \
+              /tmp/build.log | head -50 || true
             echo ""
             echo "=== LAST 100 LINES ==="
             tail -100 /tmp/build.log
