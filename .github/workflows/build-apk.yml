@@ -83,11 +83,8 @@ jobs:
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
             echo "=== KEY ERRORS ==="
-            grep -E "(FAILED$|Caused by:|cannot find symbol|Unknown prop type|does not exist)" \
+            grep -E "(FAILED$|Caused by:|error:|Unknown prop|cannot find symbol)" \
               /tmp/build.log | head -30 || true
-            echo ""
-            echo "=== CONTEXT AROUND FAILURE ==="
-            grep -n "FAILED\|Error:" /tmp/build.log | head -20 || true
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
@@ -98,12 +95,16 @@ jobs:
         run: |
           {
             echo "=== Run #${{ github.run_number }} ==="
-            echo "=== KEY ERRORS ==="
-            grep -E "(FAILED$|Caused by:|cannot find symbol|Unknown prop type|does not exist)" \
-              /tmp/build.log | head -50 || true
             echo ""
-            echo "=== LAST 100 LINES ==="
-            tail -100 /tmp/build.log
+            echo "=== KEY ERRORS ==="
+            grep -E "(FAILED$|Caused by:|^e:| error:|Unknown prop|cannot find symbol)" \
+              /tmp/build.log | head -60 || true
+            echo ""
+            echo "=== FULL LOG AROUND FAILED TASK ==="
+            grep -n "FAILED\|^e:\| error:" /tmp/build.log | head -30 || true
+            echo ""
+            echo "=== LAST 150 LINES ==="
+            tail -150 /tmp/build.log
           } > build-error.log
           git config user.email "ci@dawai.app"
           git config user.name "CI Bot"
