@@ -37,21 +37,6 @@ jobs:
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           [ -f "$FILE" ] && sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE" && echo "✅ Patched" || echo "⏭️ Skip"
 
-      - name: 🔧 Patch react-native-screens codegen (accessibilityContainerViewIsModal undefined)
-        run: |
-          SCREENS_SPEC="node_modules/react-native-screens/src/specs/NativeScreensModule.ts"
-          if [ -f "$SCREENS_SPEC" ]; then
-            sed -i '/accessibilityContainerViewIsModal/d' "$SCREENS_SPEC"
-            echo "✅ Patched NativeScreensModule.ts"
-          fi
-
-          find node_modules/react-native-screens/src -type f \( -name "*.ts" -o -name "*.tsx" \) 2>/dev/null | while read f; do
-            sed -i '/accessibilityContainerViewIsModal/d' "$f"
-            sed -i 's/WithDefault<boolean, undefined>/WithDefault<boolean, false>/g' "$f"
-            sed -i 's/WithDefault<string, undefined>/WithDefault<string, ''''''>/g' "$f"
-          done
-          echo "✅ Done patching react-native-screens"
-
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
