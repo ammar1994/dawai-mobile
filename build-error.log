@@ -1,31 +1,9 @@
-=== Run #707 ===
+=== Run #708 ===
 === KEY ERRORS ===
 > Task :react-native-screens:generateCodegenSchemaFromJavaScript FAILED
-> Process 'command 'node'' finished with non-zero exit value 1
-* Exception is:
-org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':react-native-screens:generateCodegenSchemaFromJavaScript'.
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+      throw new Error(`Unknown prop type for "${name}": "${type}"`);
+Error: Unknown prop type for "isOpen": "undefined"
 Caused by: org.gradle.process.internal.ExecException: Process 'command 'node'' finished with non-zero exit value 1
-	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
-BUILD FAILED in 8m 28s
-
-=== CONTEXT AROUND generateCodegenSchema FAILURE ===
-75:> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
-85:> Task :lottie-react-native:generateCodegenSchemaFromJavaScript
-86:> Task :d11_react-native-fast-image:generateCodegenSchemaFromJavaScript
-238:> Task :react-native-bootsplash:generateCodegenSchemaFromJavaScript
-239:> Task :react-native-community_datetimepicker:generateCodegenSchemaFromJavaScript
-370:> Task :react-native-gesture-handler:generateCodegenSchemaFromJavaScript
-371:> Task :react-native-image-picker:generateCodegenSchemaFromJavaScript
-481:> Task :react-native-mmkv:generateCodegenSchemaFromJavaScript
-524:> Task :react-native-permissions:generateCodegenSchemaFromJavaScript
-571:> Task :react-native-safe-area-context:generateCodegenSchemaFromJavaScript
-621:> Task :react-native-screens:generateCodegenSchemaFromJavaScript FAILED
-626:Error: Unknown prop type for "accessibilityContainerViewIsModal": "undefined"
-652:Execution failed for task ':react-native-screens:generateCodegenSchemaFromJavaScript'.
-653:> Process 'command 'node'' finished with non-zero exit value 1
-661:org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':react-native-screens:generateCodegenSchemaFromJavaScript'.
-694:Caused by: org.gradle.process.internal.ExecException: Process 'command 'node'' finished with non-zero exit value 1
 
 === LAST 100 LINES ===
 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
@@ -126,5 +104,5 @@ BUILD FAILED in 8m 28s
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 8m 28s
-351 actionable tasks: 351 executed
+BUILD FAILED in 8m 23s
+334 actionable tasks: 334 executed
