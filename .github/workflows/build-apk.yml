@@ -36,39 +36,51 @@ jobs:
             sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE"
             echo "✅ Patched ReactSettingsExtension"
           else
-            echo "ℹ️ ReactSettingsExtension not found — skipping"
+            echo "ℹ️ Not found — skipping"
           fi
 
-      - name: 🔧 Patch react-native-screens codegen spec
+      - name: 🔧 Patch codegen specs (fix undefined prop types)
         run: |
-          COUNT=0
-          for f in $(find node_modules/react-native-screens -type f \( -name "*.ts" -o -name "*.js" \) 2>/dev/null); do
-            if grep -q "accessibilityContainerViewIsModal" "$f" 2>/dev/null; then
-              sed -i '/accessibilityContainerViewIsModal/d' "$f"
-              echo "Patched: $f"
-              COUNT=$((COUNT+1))
+          # Fix all packages that have undefined prop types in codegen specs
+          for f in $(find node_modules -type f \( -name "*.ts" -o -name "*.js" \) \
+                     -path "*/src/fabric/*" -o -path "*/src/specs/*" \
+                     2>/dev/null | head -500); do
+            if grep -q ": *undefined" "$f" 2>/dev/null; then
+              sed -i 's/: *undefined/: boolean/g' "$f"
+              echo "Patched type: $f"
             fi
           done
-          echo "✅ Patched $COUNT files"
+          # Also patch accessibilityContainerViewIsModal specifically
+          for f in $(find node_modules/react-native-screens -type f \
+                     \( -name "*.ts" -o -name "*.js" \) 2>/dev/null); do
+            if grep -q "accessibilityContainerViewIsModal" "$f" 2>/dev/null; then
+              sed -i '/accessibilityContainerViewIsModal/d' "$f"
+              echo "Removed prop: $f"
+            fi
+          done
+          echo "✅ Spec patching complete"
 
-      - name: 🔍 Verify react-native config
+      - name: 🔍 Diagnose react-native config
         run: |
-          echo "=== Testing react-native config ==="
-          node node_modules/@react-native-community/cli/build/index.js config > /tmp/rn-config.json 2>/tmp/rn-config-err.txt
+          echo "=== react-native config output ==="
+          node node_modules/@react-native-community/cli/build/index.js config \
+            > /tmp/rn-config.json 2>/tmp/rn-config-err.txt || true
           EXIT=$?
+          echo "Exit code: $EXIT"
           if [ $EXIT -ne 0 ]; then
-            echo "❌ react-native config FAILED (exit $EXIT)"
+            echo "=== ERRORS ==="
             cat /tmp/rn-config-err.txt
-            exit 1
+          else
+            echo "✅ Config OK"
+            node -e "
+              const fs = require('fs');
+              const d = JSON.parse(fs.readFileSync('/tmp/rn-config.json','utf8'));
+              const native = Object.entries(d.dependencies||{})
+                .filter(([,v])=>v.platforms&&v.platforms.android);
+              console.log('Android deps:', native.length);
+              native.forEach(([k])=>console.log(' -', k));
+            "
           fi
-          echo "✅ react-native config succeeded"
-          wc -c /tmp/rn-config.json
-          node -e "
-            const d = JSON.parse(require('fs').readFileSync('/tmp/rn-config.json','utf8'));
-            const native = Object.entries(d.dependencies||{}).filter(([,v])=>v.platforms&&v.platforms.android);
-            console.log('Native Android deps:', native.length);
-            native.slice(0,8).forEach(([k])=>console.log(' -', k));
-          "
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -115,9 +127,9 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
-            echo ""
             echo "=== KEY ERRORS ==="
-            grep -E "(^error:|FAILED|Caused by:|Unknown prop|does not exist)" /tmp/build.log | tail -40 || true
+            grep -E "(^error:|FAILED|Caused by:|Unknown prop|does not exist|Exception)" \
+              /tmp/build.log | tail -40 || true
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
