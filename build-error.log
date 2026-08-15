@@ -1,4 +1,4 @@
-=== Run #701 ===
+=== Run #700 ===
 === KEY ERRORS ===
 /home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCircleManagerInterface.java:15: error: cannot find symbol
 /home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCircleManagerInterface.java:17: error: cannot find symbol
@@ -101,5 +101,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 8m 49s
-248 actionable tasks: 248 executed
+BUILD FAILED in 10m 19s
+218 actionable tasks: 218 executed
