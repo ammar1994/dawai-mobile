@@ -47,29 +47,27 @@ jobs:
           done
           echo "✅ Done"
 
-      - name: 🔍 Save react-native config output to repo
+      - name: 🔍 Capture react-native config output
         run: |
+          mkdir -p /tmp/debug
           set +e
           node node_modules/@react-native-community/cli/build/index.js config \
-            > /tmp/rn-config.json 2>/tmp/rn-config-err.txt
+            > /tmp/debug/rn-config.json 2>/tmp/debug/rn-config-err.txt
           EXIT=$?
-          set -e
-          echo "react-native config exit code: $EXIT"
-          # Save results to repo for inspection
-          mkdir -p debug
+          echo "Exit: $EXIT" > /tmp/debug/rn-config-summary.txt
           if [ $EXIT -ne 0 ]; then
-            echo "FAILED (exit $EXIT)" > debug/rn-config-status.txt
-            cat /tmp/rn-config-err.txt >> debug/rn-config-status.txt
+            cat /tmp/debug/rn-config-err.txt >> /tmp/debug/rn-config-summary.txt
           else
-            BYTES=$(wc -c < /tmp/rn-config.json)
-            echo "SUCCESS ($BYTES bytes)" > debug/rn-config-status.txt
-            head -c 3000 /tmp/rn-config.json >> debug/rn-config-status.txt
+            wc -c /tmp/debug/rn-config.json >> /tmp/debug/rn-config-summary.txt
           fi
-          git config user.email "ci@dawai.app"
-          git config user.name "CI Bot"
-          git add debug/
-          git commit -m "ci: save react-native config output [skip ci]" || true
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main || true
+          cat /tmp/debug/rn-config-summary.txt
+
+      - name: 📋 Upload config diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: rn-config-debug-v${{ github.run_number }}
+          path: /tmp/debug/
+          retention-days: 7
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -123,6 +121,14 @@ jobs:
           fi
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
+
+      - name: 📋 Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-v${{ github.run_number }}
+          path: /tmp/build.log
+          retention-days: 7
 
       - name: 📤 Upload APK
         if: success()
