@@ -32,6 +32,15 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: 🔍 Debug react-native-screens spec
+        run: |
+          echo "=== react-native-screens version ==="
+          node -e "console.log(require('./node_modules/react-native-screens/package.json').version)"
+          echo "=== NativeWindowManagerSpec.js ==="
+          find node_modules/react-native-screens -name "*.js" | xargs grep -l "generateCodegenSchema" 2>/dev/null | head -5 || true
+          echo "=== Running codegen test ==="
+          node -e "require('./node_modules/react-native-screens')" 2>&1 || true
+
       - name: 🩹 Patch ReactSettingsExtension bug
         run: |
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
@@ -52,7 +61,7 @@ jobs:
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
           else
-            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود — سيفشل Firebase"
+            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
           fi
 
       - name: 🗺️ Maps API Key
@@ -83,8 +92,8 @@ jobs:
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
             echo "=== KEY ERRORS ==="
-            grep -E "(^error:|FAILED$|Caused by:|cannot find symbol|does not exist)" \
-              /tmp/build.log | head -30 || true
+            grep -E "(FAILED|error:|cannot find symbol|Caused by:|finished with non-zero)" \
+              /tmp/build.log | head -40 || true
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
@@ -96,11 +105,14 @@ jobs:
           {
             echo "=== Run #${{ github.run_number }} ==="
             echo "=== KEY ERRORS ==="
-            grep -E "(^error:|FAILED$|Caused by:|cannot find symbol|does not exist)" \
-              /tmp/build.log | head -50 || true
+            grep -E "(FAILED|error:|cannot find symbol|Caused by:|finished with non-zero|Exception)" \
+              /tmp/build.log | head -60 || true
             echo ""
-            echo "=== LAST 80 LINES ==="
-            tail -80 /tmp/build.log
+            echo "=== CONTEXT AROUND generateCodegenSchema FAILURE ==="
+            grep -n "generateCodegenSchema\|non-zero\|node.*error\|Error:" /tmp/build.log | head -40 || true
+            echo ""
+            echo "=== LAST 100 LINES ==="
+            tail -100 /tmp/build.log
           } > build-error.log
           git config user.email "ci@dawai.app"
           git config user.name "CI Bot"
