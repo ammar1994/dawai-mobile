@@ -1,16 +1,16 @@
-=== Run #696 ===
+=== Run #698 ===
 === KEY ERRORS ===
 FAILURE: Build failed with an exception.
 * What went wrong:
-     com.dawaiapp-mergeDebugResources-32:/values/values.xml:426: error: style attribute 'android:attr/editTextBackgroundMode' not found.
+     com.dawaiapp-mergeDebugResources-35:/values/values.xml:436: error: style attribute 'android:attr/editTextBackgroundMode' not found.
      error: failed linking references.
 * Exception is:
 org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:processDebugResources'.
 Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
 Caused by: com.android.builder.internal.aapt.v2.Aapt2Exception: Android resource linking failed
-com.dawaiapp-mergeDebugResources-32:/values/values.xml:426: error: style attribute 'android:attr/editTextBackgroundMode' not found.
+com.dawaiapp-mergeDebugResources-35:/values/values.xml:436: error: style attribute 'android:attr/editTextBackgroundMode' not found.
 error: failed linking references.
-	Suppressed: java.util.NoSuchElementException: Unable to get absolute path from com.dawaiapp-mergeDebugResources-32:/values/values.xml
+	Suppressed: java.util.NoSuchElementException: Unable to get absolute path from com.dawaiapp-mergeDebugResources-35:/values/values.xml
 === LAST 80 LINES ===
 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
 	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
@@ -36,8 +36,8 @@ error: failed linking references.
 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:157)
 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:126)
 	... 2 more
-	Suppressed: java.util.NoSuchElementException: Unable to get absolute path from com.dawaiapp-mergeDebugResources-32:/values/values.xml
-                       because com.dawaiapp-mergeDebugResources-32 is not key in sourceSetPathMap.
+	Suppressed: java.util.NoSuchElementException: Unable to get absolute path from com.dawaiapp-mergeDebugResources-35:/values/values.xml
+                       because com.dawaiapp-mergeDebugResources-35 is not key in sourceSetPathMap.
 		at com.android.ide.common.resources.RelativeResourceUtils$relativeResourcePathToAbsolutePath$1.invoke(RelativeResourceUtils.kt:91)
 		at com.android.ide.common.resources.RelativeResourceUtils$relativeResourcePathToAbsolutePath$1.invoke(RelativeResourceUtils.kt:68)
 		at com.android.ide.common.resources.RelativeResourceUtils.relativeResourcePathToAbsolutePath(RelativeResourceUtils.kt:61)
@@ -89,5 +89,5 @@ error: failed linking references.
 		at java.base/java.lang.Thread.run(Thread.java:840)
 
 
-BUILD FAILED in 3m 35s
-157 actionable tasks: 157 executed
+BUILD FAILED in 3m 20s
+136 actionable tasks: 136 executed
