@@ -37,8 +37,17 @@ jobs:
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           [ -f "$FILE" ] && sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE" && echo "✅ Patched"
 
-      - name: 🔧 Patch codegen specs
+      - name: 🔧 Patch node_modules XML resources
         run: |
+          echo "=== Searching for editTextBackgroundMode in node_modules ==="
+          find node_modules -name "*.xml" -path "*/res/values/*" 2>/dev/null | \
+            xargs grep -rl "editTextBackgroundMode" 2>/dev/null | \
+            while read f; do
+              sed -i '/editTextBackgroundMode/d' "$f"
+              echo "  Patched XML: $f"
+            done
+          echo ""
+          echo "=== Patching codegen specs ==="
           find node_modules -type f \( -name "*.ts" -o -name "*.js" \) 2>/dev/null | \
             xargs grep -rl "WithDefault.*undefined\|accessibilityContainerViewIsModal" 2>/dev/null | \
             while read f; do
@@ -46,7 +55,7 @@ jobs:
               sed -i 's/WithDefault<boolean, undefined>/boolean/g' "$f"
               sed -i 's/WithDefault<string, undefined>/string/g' "$f"
             done
-          echo "✅ Codegen patches done"
+          echo "✅ All patches done"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -121,5 +130,5 @@ jobs:
             echo "✅ APK جاهز — $SIZE" >> $GITHUB_STEP_SUMMARY
             echo "📥 حمّل من تبويب Artifacts" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء — راجع build-error.log في الـ repo" >> $GITHUB_STEP_SUMMARY
           fi
