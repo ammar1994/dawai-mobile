@@ -37,37 +37,51 @@ jobs:
             echo "✅ Patched ReactSettingsExtension"
           fi
 
-      - name: 🔧 Patch react-native-screens spec
+      - name: 🔧 Patch codegen specs (undefined prop types)
         run: |
-          for f in $(find node_modules/react-native-screens -type f \( -name "*.ts" -o -name "*.js" \) 2>/dev/null); do
-            if grep -q "accessibilityContainerViewIsModal" "$f" 2>/dev/null; then
-              sed -i '/accessibilityContainerViewIsModal/d' "$f"
-              echo "Patched: $f"
-            fi
-          done
-          echo "✅ Done"
+          echo "=== Searching ALL files for accessibilityContainerViewIsModal ==="
+          find node_modules -type f 2>/dev/null \
+            | xargs grep -rl "accessibilityContainerViewIsModal" 2>/dev/null \
+            | while read f; do
+                sed -i '/accessibilityContainerViewIsModal/d' "$f"
+                echo "  Patched: $f"
+              done
+          echo ""
+          echo "=== Searching for WithDefault.*undefined codegen bug ==="
+          find node_modules -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" \) 2>/dev/null \
+            | xargs grep -rl "WithDefault.*undefined" 2>/dev/null \
+            | while read f; do
+                sed -i 's/WithDefault<boolean, undefined>/boolean/g' "$f"
+                sed -i 's/WithDefault<string, undefined>/string/g' "$f"
+                echo "  Fixed WithDefault: $f"
+              done
+          echo "✅ Codegen spec patching complete"
 
-      - name: 🔍 Capture react-native config output
+      - name: 🔍 Verify react-native config
         run: |
-          mkdir -p /tmp/debug
           set +e
           node node_modules/@react-native-community/cli/build/index.js config \
-            > /tmp/debug/rn-config.json 2>/tmp/debug/rn-config-err.txt
+            > /tmp/rn-config.json 2>/tmp/rn-config-err.txt
           EXIT=$?
-          echo "Exit: $EXIT" > /tmp/debug/rn-config-summary.txt
+          set -e
+          echo "Exit code: $EXIT"
           if [ $EXIT -ne 0 ]; then
-            cat /tmp/debug/rn-config-err.txt >> /tmp/debug/rn-config-summary.txt
+            echo "::warning::react-native config failed (exit $EXIT)"
+            cat /tmp/rn-config-err.txt | head -30
           else
-            wc -c /tmp/debug/rn-config.json >> /tmp/debug/rn-config-summary.txt
+            BYTES=$(wc -c < /tmp/rn-config.json)
+            echo "✅ Config OK — $BYTES bytes"
+            node -e "
+              try {
+                var d=JSON.parse(require('fs').readFileSync('/tmp/rn-config.json','utf8'));
+                var n=Object.keys(d.dependencies||{}).filter(function(k){
+                  return d.dependencies[k].platforms&&d.dependencies[k].platforms.android;
+                });
+                console.log('Android native deps: '+n.length);
+                n.forEach(function(k){console.log('  - '+k);});
+              } catch(e){console.log('parse err:'+e.message);}
+            " || true
           fi
-          cat /tmp/debug/rn-config-summary.txt
-
-      - name: 📋 Upload config diagnostic
-        uses: actions/upload-artifact@v4
-        with:
-          name: rn-config-debug-v${{ github.run_number }}
-          path: /tmp/debug/
-          retention-days: 7
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -114,15 +128,16 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
+            echo ""
             echo "=== KEY ERRORS ==="
-            grep -E "(^error:|FAILED|Caused by:|Unknown prop|does not exist)" \
-              /tmp/build.log | tail -40 || true
+            grep -E "(^error:|FAILED$|Caused by:|Unknown prop|does not exist|Exception:)" \
+              /tmp/build.log | grep -v "^$" | head -50 || true
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
 
-      - name: 📋 Upload build log on failure
+      - name: 📋 Upload build log
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -146,5 +161,5 @@ jobs:
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
             echo "✅ **APK جاهز** — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء — راجع build-log artifact" >> $GITHUB_STEP_SUMMARY
           fi
