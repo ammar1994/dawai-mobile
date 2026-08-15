@@ -1,9 +1,53 @@
-=== Run #706 ===
+=== Run #707 ===
 === KEY ERRORS ===
 > Task :react-native-screens:generateCodegenSchemaFromJavaScript FAILED
+> Process 'command 'node'' finished with non-zero exit value 1
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':react-native-screens:generateCodegenSchemaFromJavaScript'.
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
 Caused by: org.gradle.process.internal.ExecException: Process 'command 'node'' finished with non-zero exit value 1
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+BUILD FAILED in 8m 28s
 
-=== LAST 80 LINES ===
+=== CONTEXT AROUND generateCodegenSchema FAILURE ===
+75:> Task :app:generateCodegenSchemaFromJavaScript SKIPPED
+85:> Task :lottie-react-native:generateCodegenSchemaFromJavaScript
+86:> Task :d11_react-native-fast-image:generateCodegenSchemaFromJavaScript
+238:> Task :react-native-bootsplash:generateCodegenSchemaFromJavaScript
+239:> Task :react-native-community_datetimepicker:generateCodegenSchemaFromJavaScript
+370:> Task :react-native-gesture-handler:generateCodegenSchemaFromJavaScript
+371:> Task :react-native-image-picker:generateCodegenSchemaFromJavaScript
+481:> Task :react-native-mmkv:generateCodegenSchemaFromJavaScript
+524:> Task :react-native-permissions:generateCodegenSchemaFromJavaScript
+571:> Task :react-native-safe-area-context:generateCodegenSchemaFromJavaScript
+621:> Task :react-native-screens:generateCodegenSchemaFromJavaScript FAILED
+626:Error: Unknown prop type for "accessibilityContainerViewIsModal": "undefined"
+652:Execution failed for task ':react-native-screens:generateCodegenSchemaFromJavaScript'.
+653:> Process 'command 'node'' finished with non-zero exit value 1
+661:org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':react-native-screens:generateCodegenSchemaFromJavaScript'.
+694:Caused by: org.gradle.process.internal.ExecException: Process 'command 'node'' finished with non-zero exit value 1
+
+=== LAST 100 LINES ===
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:41)
+	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:74)
+	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:67)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:45)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
 	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$1(BuildCacheStep.java:75)
 	at org.gradle.internal.Either$Right.fold(Either.java:175)
@@ -82,5 +126,5 @@ Caused by: org.gradle.process.internal.ExecException: Process 'command 'node'' f
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 8m 40s
-352 actionable tasks: 352 executed
+BUILD FAILED in 8m 28s
+351 actionable tasks: 351 executed
