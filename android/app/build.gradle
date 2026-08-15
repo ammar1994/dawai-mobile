@@ -4,7 +4,7 @@ apply plugin: "com.facebook.react"
 apply plugin: "com.google.gms.google-services"
 
 react {
-    // الإعدادات الافتراضية — لا تعدّل إلا إذا غيرت موقع index.js
+    // الإعدادات الافتراضية
 }
 
 android {
@@ -19,7 +19,6 @@ android {
         targetSdk      rootProject.ext.targetSdkVersion
         versionCode    1
         versionName    "1.0.0"
-        vectorDrawables.useSupportLibrary = true
     }
 
     signingConfigs {
@@ -29,14 +28,6 @@ android {
             keyAlias       "androiddebugkey"
             keyPassword   "android"
         }
-        release {
-            if (project.hasProperty("DAWAI_UPLOAD_STORE_FILE")) {
-                storeFile      file(DAWAI_UPLOAD_STORE_FILE)
-                storePassword  DAWAI_UPLOAD_STORE_PASSWORD
-                keyAlias       DAWAI_UPLOAD_KEY_ALIAS
-                keyPassword    DAWAI_UPLOAD_KEY_PASSWORD
-            }
-        }
     }
 
     buildTypes {
@@ -44,7 +35,6 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig signingConfigs.release
             minifyEnabled       true
             shrinkResources     true
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
@@ -52,48 +42,26 @@ android {
     }
 }
 
+// Fix: force AppCompat 1.6.1 to avoid android:attr/editTextBackgroundMode error
+// (AppCompat 1.7.0 introduced this attr which breaks AAPT2 with RN 0.76.x)
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.appcompat:appcompat:1.6.1'
+        force 'androidx.appcompat:appcompat-resources:1.6.1'
+        force 'androidx.core:core:1.12.0'
+        force 'androidx.core:core-ktx:1.12.0'
+    }
+}
+
 dependencies {
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
-
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
-
     implementation platform("com.google.firebase:firebase-bom:33.7.0")
     implementation "com.google.firebase:firebase-messaging"
     implementation "com.google.firebase:firebase-analytics"
-
     implementation "com.google.android.gms:play-services-maps:18.2.0"
     implementation "com.google.android.gms:play-services-location:21.2.0"
 }
 
-configurations.all {
-    resolutionStrategy {
-        force 'androidx.core:core:1.13.1'
-        force 'androidx.core:core-ktx:1.13.1'
-        force 'androidx.appcompat:appcompat:1.7.0'
-    }
-}
-
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
-
-// Fix: android:attr/editTextBackgroundMode not found (known RN 0.76.x bug)
-// doFirst على processDebugResources — يُنفَّذ مباشرةً قبل AAPT2
-gradle.taskGraph.whenReady { graph ->
-    graph.allTasks.each { task ->
-        if (task.name.contains("processDebugResources") && task.project == project) {
-            task.doFirst {
-                def bd = project.buildDir
-                int count = 0
-                fileTree(bd).each { f ->
-                    if (f.name.endsWith(".xml") && f.text.contains("editTextBackgroundMode")) {
-                        f.text = f.text.replaceAll(/(?s)<item name="android:editTextBackgroundMode"[^<]*<\/item>/, "")
-                              .replaceAll(/.*editTextBackgroundMode.*\n?/, "")
-                        count++
-                        println "  Patched: ${f.absolutePath}"
-                    }
-                }
-                println "  Total patched: ${count} files"
-            }
-        }
-    }
-}
