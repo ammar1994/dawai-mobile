@@ -1,8 +1,7 @@
-=== Run #713 ===
+=== Run #714 ===
 
 === KEY ERRORS ===
 > Task :app:processDebugResources FAILED
-> Task :app:checkDebugDuplicateClasses
      com.dawaiapp-mergeDebugResources-35:/values/values.xml:436: error: style attribute 'android:attr/editTextBackgroundMode' not found.
      error: failed linking references.
 Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
@@ -158,5 +157,5 @@ error: failed linking references.
 		at java.base/java.lang.Thread.run(Thread.java:840)
 
 
-BUILD FAILED in 8m 56s
-471 actionable tasks: 471 executed
+BUILD FAILED in 8m 42s
+469 actionable tasks: 469 executed
