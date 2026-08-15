@@ -75,3 +75,24 @@ configurations.all {
 }
 
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
+
+
+// Fix: android:attr/editTextBackgroundMode not found (known RN 0.76.x bug)
+// يُزيل الـ attribute من الـ merged resources بعد الدمج وقبل AAPT2
+afterEvaluate {
+    def mergeTask = tasks.findByName("mergeDebugResources")
+    if (mergeTask) {
+        mergeTask.doLast {
+            fileTree(buildDir).matching {
+                include "**/intermediates/**/*.xml"
+                include "**/merged_res/**/*.xml"
+            }.each { f ->
+                if (f.text.contains("editTextBackgroundMode")) {
+                    def orig = f.text
+                    f.text = orig.replaceAll(/(?m).*editTextBackgroundMode.*\n?/, "")
+                    println "  ✅ Patched: ${f.path}"
+                }
+            }
+        }
+    }
+}
