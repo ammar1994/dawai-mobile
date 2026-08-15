@@ -1,25 +1,7 @@
-=== Run #704 ===
+=== Run #706 ===
 === KEY ERRORS ===
-> Task :react-native-maps:compileDebugJavaWithJavac FAILED
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCircleManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCircleManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsUrlTileManagerInterface.java:14: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsUrlTileManagerInterface.java:16: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsMarkerManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsMarkerManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCalloutManagerInterface.java:13: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsCalloutManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsGooglePolygonManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsGooglePolygonManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsMapViewManagerInterface.java:16: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsMapViewManagerInterface.java:18: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsOverlayManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsOverlayManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsPolylineManagerInterface.java:15: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsPolylineManagerInterface.java:17: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsWMSTileManagerInterface.java:14: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers/RNMapsWMSTileManagerInterface.java:16: error: cannot find symbol
-Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+> Task :react-native-screens:generateCodegenSchemaFromJavaScript FAILED
+Caused by: org.gradle.process.internal.ExecException: Process 'command 'node'' finished with non-zero exit value 1
 
 === LAST 80 LINES ===
 	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
@@ -47,7 +29,7 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
-	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:61)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:56)
 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
 	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
@@ -100,5 +82,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 6m 47s
-248 actionable tasks: 248 executed
+BUILD FAILED in 8m 40s
+352 actionable tasks: 352 executed
