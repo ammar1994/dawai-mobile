@@ -4,7 +4,7 @@ apply plugin: "com.facebook.react"
 apply plugin: "com.google.gms.google-services"
 
 react {
-    // الإعدادات الافتراضية
+    // الإعدادات الافتراضية — لا تعدّل إلا إذا غيرت موقع index.js
 }
 
 android {
@@ -67,4 +67,3 @@ dependencies {
 }
 
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
-
