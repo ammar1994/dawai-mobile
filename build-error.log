@@ -1,0 +1,108 @@
+=== Run #689 ===
+=== KEY ERRORS ===
+FAILURE: Build failed with an exception.
+* What went wrong:
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:mergeDebugAssets'.
+Caused by: com.android.build.gradle.tasks.ResourceException: [fonts/EvilIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/EvilIcons.ttf	[fonts/EvilIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/EvilIcons.ttf: Error: Duplicate resources
+Caused by: [fonts/EvilIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/EvilIcons.ttf	[fonts/EvilIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/EvilIcons.ttf: Error: Duplicate resources
+=== LAST 100 LINES ===
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:76)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:54)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:54)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:36)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:106)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:55)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:56)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:200)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:195)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:80)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:463)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+Caused by: [fonts/EvilIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/EvilIcons.ttf	[fonts/EvilIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/EvilIcons.ttf: Error: Duplicate resources
+[fonts/AntDesign.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/AntDesign.ttf	[fonts/AntDesign.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/AntDesign.ttf: Error: Duplicate resources
+[fonts/Octicons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/Octicons.ttf	[fonts/Octicons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/Octicons.ttf: Error: Duplicate resources
+[fonts/FontAwesome.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/FontAwesome.ttf	[fonts/FontAwesome.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/FontAwesome.ttf: Error: Duplicate resources
+[fonts/FontAwesome6_Regular.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/FontAwesome6_Regular.ttf	[fonts/FontAwesome6_Regular.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/FontAwesome6_Regular.ttf: Error: Duplicate resources
+[fonts/FontAwesome5_Brands.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/FontAwesome5_Brands.ttf	[fonts/FontAwesome5_Brands.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/FontAwesome5_Brands.ttf: Error: Duplicate resources
+[fonts/Entypo.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/Entypo.ttf	[fonts/Entypo.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/Entypo.ttf: Error: Duplicate resources
+[fonts/MaterialCommunityIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/MaterialCommunityIcons.ttf	[fonts/MaterialCommunityIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/MaterialCommunityIcons.ttf: Error: Duplicate resources
+[fonts/Zocial.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/Zocial.ttf	[fonts/Zocial.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/Zocial.ttf: Error: Duplicate resources
+[fonts/FontAwesome5_Solid.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/FontAwesome5_Solid.ttf	[fonts/FontAwesome5_Solid.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/FontAwesome5_Solid.ttf: Error: Duplicate resources
+[fonts/MaterialIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/MaterialIcons.ttf	[fonts/MaterialIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/MaterialIcons.ttf: Error: Duplicate resources
+[fonts/Fontisto.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/Fontisto.ttf	[fonts/Fontisto.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/Fontisto.ttf: Error: Duplicate resources
+[fonts/SimpleLineIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/SimpleLineIcons.ttf	[fonts/SimpleLineIcons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/SimpleLineIcons.ttf: Error: Duplicate resources
+[fonts/FontAwesome5_Regular.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/FontAwesome5_Regular.ttf	[fonts/FontAwesome5_Regular.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/FontAwesome5_Regular.ttf: Error: Duplicate resources
+[fonts/FontAwesome6_Brands.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/FontAwesome6_Brands.ttf	[fonts/FontAwesome6_Brands.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/FontAwesome6_Brands.ttf: Error: Duplicate resources
+[fonts/Foundation.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/Foundation.ttf	[fonts/Foundation.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/Foundation.ttf: Error: Duplicate resources
+[fonts/FontAwesome6_Solid.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/FontAwesome6_Solid.ttf	[fonts/FontAwesome6_Solid.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/FontAwesome6_Solid.ttf: Error: Duplicate resources
+[fonts/Ionicons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/Ionicons.ttf	[fonts/Ionicons.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/Ionicons.ttf: Error: Duplicate resources
+[fonts/Feather.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/assets/fonts/Feather.ttf	[fonts/Feather.ttf] /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/ReactNativeVectorIcons/fonts/Feather.ttf: Error: Duplicate resources
+	at com.android.ide.common.resources.DataSet.checkItems(DataSet.java:512)
+	at com.android.ide.common.resources.DataSet.loadFromFiles(DataSet.java:273)
+	at com.android.ide.common.resources.DataSet.loadFromFiles(DataSet.java:243)
+	at com.android.build.gradle.tasks.MergeSourceSetFolders.doFullTaskAction(MergeSourceSetFolders.kt:153)
+	... 127 more
+
+
+BUILD FAILED in 3m 40s
+127 actionable tasks: 127 executed
