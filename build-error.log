@@ -1,46 +1,46 @@
-=== Run #719 ===
+=== Run #718 ===
 === KEY ERRORS ===
 FAILURE: Build failed with an exception.
 * What went wrong:
      com.dawaiapp-mergeDebugResources-32:/values/values.xml:435: error: style attribute 'android:attr/editTextBackgroundMode' not found.
      error: failed linking references.
 === LAST 80 LINES ===
-> Task :d11_react-native-fast-image:mergeDebugJniLibFolders
-> Task :d11_react-native-fast-image:mergeDebugNativeLibs NO-SOURCE
-> Task :d11_react-native-fast-image:stripDebugDebugSymbols NO-SOURCE
-> Task :lottie-react-native:copyDebugJniLibsProjectAndLocalJars
-> Task :d11_react-native-fast-image:generateDebugBuildConfig
-> Task :d11_react-native-fast-image:generateDebugResValues UP-TO-DATE
+> Task :d11_react-native-fast-image:javaPreCompileDebug
 > Task :d11_react-native-fast-image:copyDebugJniLibsProjectAndLocalJars
-> Task :d11_react-native-fast-image:generateDebugResources UP-TO-DATE
-> Task :lottie-react-native:checkKotlinGradlePluginConfigurationErrors
-> Task :lottie-react-native:generateDebugBuildConfig
-> Task :lottie-react-native:generateDebugResValues UP-TO-DATE
-> Task :lottie-react-native:generateDebugResources UP-TO-DATE
-> Task :lottie-react-native:packageDebugResources
-> Task :d11_react-native-fast-image:packageDebugResources
+> Task :d11_react-native-fast-image:mergeDebugShaders
+> Task :d11_react-native-fast-image:generateDebugRFile
+> Task :d11_react-native-fast-image:compileDebugShaders NO-SOURCE
+> Task :lottie-react-native:extractDeepLinksForAarDebug
+> Task :app:checkDebugAarMetadata
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :lottie-react-native:parseDebugLocalResources
+> Task :app:processDebugGoogleServices UP-TO-DATE
+> Task :lottie-react-native:javaPreCompileDebug
+> Task :lottie-react-native:generateDebugRFile
+> Task :notifee_react-native:mergeDebugNativeLibs NO-SOURCE
+> Task :notifee_react-native:stripDebugDebugSymbols NO-SOURCE
+> Task :lottie-react-native:mergeDebugShaders
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources UP-TO-DATE
 > Task :notifee_react-native:copyDebugJniLibsProjectAndLocalJars
 > Task :notifee_react-native:generateDebugBuildConfig
 > Task :notifee_react-native:generateDebugResValues UP-TO-DATE
 > Task :notifee_react-native:generateDebugResources UP-TO-DATE
 > Task :notifee_react-native:packageDebugResources
-> Task :app:generateDebugResValues UP-TO-DATE
-> Task :app:processDebugGoogleServices UP-TO-DATE
-> Task :app:checkDebugAarMetadata
-> Task :app:mapDebugSourceSetPaths
-> Task :app:generateDebugResources UP-TO-DATE
-> Task :lottie-react-native:parseDebugLocalResources
 > Task :notifee_react-native:parseDebugLocalResources
-> Task :d11_react-native-fast-image:parseDebugLocalResources
-> Task :d11_react-native-fast-image:extractDeepLinksForAarDebug
-> Task :notifee_react-native:generateDebugRFile
-> Task :d11_react-native-fast-image:generateDebugRFile
-> Task :lottie-react-native:generateDebugRFile
-> Task :app:mergeDebugResources
 > Task :app:packageDebugResources
 > Task :app:parseDebugLocalResources
 > Task :app:createDebugCompatibleScreenManifests
 > Task :app:extractDeepLinksDebug
+> Task :app:mergeDebugResources
+> Task :lottie-react-native:compileDebugShaders NO-SOURCE
+> Task :lottie-react-native:generateDebugAssets UP-TO-DATE
+> Task :lottie-react-native:packageDebugAssets
+> Task :lottie-react-native:prepareDebugArtProfile
+> Task :lottie-react-native:prepareLintJarForPublish
+> Task :lottie-react-native:processDebugManifest
+> Task :lottie-react-native:writeDebugAarMetadata
+> Task :notifee_react-native:generateDebugRFile
 
 > Task :app:processDebugMainManifest
 package="com.dawaiapp" found in source AndroidManifest.xml: /home/runner/work/dawai-mobile/dawai-mobile/android/app/src/main/AndroidManifest.xml.
@@ -50,8 +50,8 @@ Recommendation: remove package="com.dawaiapp" from the source AndroidManifest.xm
 > Task :app:processDebugManifest
 > Task :app:processDebugManifestForPackage
 > Task :app:processDebugResources FAILED
-> Task :notifee_react-native:extractDebugAnnotations
 > Task :d11_react-native-fast-image:extractDebugAnnotations
+> Task :notifee_react-native:extractDebugAnnotations
 
 > Task :lottie-react-native:compileDebugKotlin
 w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewManagerImpl.kt:12:34 'MapBuilder' is deprecated. Deprecated in Java
@@ -82,5 +82,5 @@ Execution failed for task ':app:processDebugResources'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 47s
-64 actionable tasks: 39 executed, 25 up-to-date
+BUILD FAILED in 50s
+74 actionable tasks: 49 executed, 25 up-to-date
