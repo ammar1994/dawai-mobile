@@ -37,25 +37,30 @@ jobs:
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           [ -f "$FILE" ] && sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE" && echo "✅ Patched"
 
-      - name: 🔧 Patch node_modules XML resources
+      - name: 🗺️ Fix react-native-maps pre-generated ViewManager interfaces
         run: |
-          echo "=== Searching for editTextBackgroundMode in node_modules ==="
-          find node_modules -name "*.xml" -path "*/res/values/*" 2>/dev/null | \
-            xargs grep -rl "editTextBackgroundMode" 2>/dev/null | \
-            while read f; do
-              sed -i '/editTextBackgroundMode/d' "$f"
-              echo "  Patched XML: $f"
-            done
-          echo ""
-          echo "=== Patching codegen specs ==="
-          find node_modules -type f \( -name "*.ts" -o -name "*.js" \) 2>/dev/null | \
-            xargs grep -rl "WithDefault.*undefined\|accessibilityContainerViewIsModal" 2>/dev/null | \
-            while read f; do
-              sed -i '/accessibilityContainerViewIsModal/d' "$f"
-              sed -i 's/WithDefault<boolean, undefined>/boolean/g' "$f"
-              sed -i 's/WithDefault<string, undefined>/string/g' "$f"
-            done
-          echo "✅ All patches done"
+          # react-native-maps ships pre-generated Java interface files compiled against
+          # an older RN codegen API. Delete them so RN 0.76.9 codegen regenerates them correctly.
+          VIEWMANAGERS_DIR="node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers"
+          if [ -d "$VIEWMANAGERS_DIR" ]; then
+            COUNT=$(ls "$VIEWMANAGERS_DIR"/*.java 2>/dev/null | wc -l)
+            rm -f "$VIEWMANAGERS_DIR"/*.java
+            echo "✅ Deleted $COUNT pre-generated ViewManager interface files from react-native-maps"
+            ls "$VIEWMANAGERS_DIR" 2>/dev/null || echo "  Directory now empty"
+          else
+            echo "ℹ️ ViewManagers directory not found"
+          fi
+
+      - name: 🔧 Patch codegen specs (undefined prop types)
+        run: |
+          find node_modules -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" \) 2>/dev/null \
+            | xargs grep -rl "accessibilityContainerViewIsModal\|WithDefault.*undefined" 2>/dev/null \
+            | while read f; do
+                sed -i '/accessibilityContainerViewIsModal/d' "$f"
+                sed -i 's/WithDefault<boolean, undefined>/boolean/g' "$f"
+                sed -i 's/WithDefault<string, undefined>/string/g' "$f"
+              done
+          echo "✅ Codegen spec patches done"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -69,14 +74,22 @@ jobs:
 
       - name: 🔥 Setup Firebase
         run: |
-          [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ] && \
-            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json || \
-            echo "⚠️ GOOGLE_SERVICES_JSON not set"
+          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+          else
+            echo "⚠️ GOOGLE_SERVICES_JSON غير موجود"
+          fi
 
       - name: 🗺️ Maps API Key
         run: |
-          [ -n "${{ secrets.MAPS_API_KEY }}" ] && \
-            sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' android/app/src/main/AndroidManifest.xml || true
+          if [ -n "${{ secrets.MAPS_API_KEY }}" ]; then
+            sed -i 's/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g' android/app/src/main/AndroidManifest.xml
+          fi
+
+      - name: 🔤 Copy fonts
+        run: |
+          mkdir -p android/app/src/main/assets/fonts
+          cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
 
       - name: 🔑 Debug Keystore
         run: |
@@ -91,28 +104,35 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          set -o pipefail
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          if [ $BUILD_EXIT -ne 0 ]; then
+            echo "=== KEY ERRORS ==="
+            grep -E "(^error:|FAILED$|Caused by:|cannot find symbol|does not exist|Exception:)" \
+              /tmp/build.log | grep -v "^$" | head -30 || true
+            exit $BUILD_EXIT
+          fi
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
 
       - name: 💾 Save build error to repo
         if: failure()
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            try {
-              const full = fs.readFileSync('/tmp/build.log', 'utf8');
-              const lines = full.split('\n');
-              const errors = lines.filter(l => /FAILURE|Caused by:|What went wrong|error:|Exception/.test(l) && !/^\s*at /.test(l));
-              const content = ['=== Run #' + context.runNumber + ' ===', '=== KEY ERRORS ===', ...errors.slice(0,40), '=== LAST 80 LINES ===', ...lines.slice(-80)].join('\n');
-              const encoded = Buffer.from(content).toString('base64');
-              let sha;
-              try { const {data} = await github.rest.repos.getContent({owner: context.repo.owner, repo: context.repo.repo, path: 'build-error.log'}); sha = data.sha; } catch(e) {}
-              await github.rest.repos.createOrUpdateFileContents({owner: context.repo.owner, repo: context.repo.repo, path: 'build-error.log', message: 'ci: build error #' + context.runNumber, content: encoded, ...(sha?{sha}:{})});
-            } catch(e) { core.warning(e.message); }
+        run: |
+          mkdir -p debug
+          {
+            echo "=== Run #${{ github.run_number }} ==="
+            echo "=== KEY ERRORS ==="
+            grep -E "(^error:|FAILED$|Caused by:|cannot find symbol|does not exist|Exception:)" \
+              /tmp/build.log | head -50 || true
+            echo ""
+            echo "=== LAST 80 LINES ==="
+            tail -80 /tmp/build.log
+          } > build-error.log
+          git config user.email "ci@dawai.app"
+          git config user.name "CI Bot"
+          git add build-error.log
+          git commit -m "ci: build error #${{ github.run_number }}" || true
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main || true
 
       - name: 📤 Upload APK
         if: success()
@@ -128,7 +148,6 @@ jobs:
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
             echo "✅ APK جاهز — $SIZE" >> $GITHUB_STEP_SUMMARY
-            echo "📥 حمّل من تبويب Artifacts" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ فشل البناء — راجع build-error.log في الـ repo" >> $GITHUB_STEP_SUMMARY
+            echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
           fi
