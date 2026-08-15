@@ -32,24 +32,22 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: 🗺️ Force upgrade react-native-maps to 1.29.0 (RN 0.76 compatible)
+        run: |
+          INSTALLED=$(node -e "console.log(require('./node_modules/react-native-maps/package.json').version)" 2>/dev/null || echo "none")
+          echo "Currently installed: $INSTALLED"
+          if [ "$INSTALLED" != "1.29.0" ]; then
+            echo "Upgrading react-native-maps to 1.29.0..."
+            npm install react-native-maps@1.29.0 --legacy-peer-deps --no-save
+            echo "✅ Upgraded to $(node -e "console.log(require('./node_modules/react-native-maps/package.json').version)")"
+          else
+            echo "✅ Already at 1.29.0"
+          fi
+
       - name: 🩹 Patch ReactSettingsExtension bug
         run: |
           FILE="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           [ -f "$FILE" ] && sed -i 's/.readText().substring(0, 1024)/.readText().take(1024)/g' "$FILE" && echo "✅ Patched"
-
-      - name: 🗺️ Fix react-native-maps pre-generated ViewManager interfaces
-        run: |
-          # react-native-maps ships pre-generated Java interface files compiled against
-          # an older RN codegen API. Delete them so RN 0.76.9 codegen regenerates them correctly.
-          VIEWMANAGERS_DIR="node_modules/react-native-maps/android/src/main/java/com/facebook/react/viewmanagers"
-          if [ -d "$VIEWMANAGERS_DIR" ]; then
-            COUNT=$(ls "$VIEWMANAGERS_DIR"/*.java 2>/dev/null | wc -l)
-            rm -f "$VIEWMANAGERS_DIR"/*.java
-            echo "✅ Deleted $COUNT pre-generated ViewManager interface files from react-native-maps"
-            ls "$VIEWMANAGERS_DIR" 2>/dev/null || echo "  Directory now empty"
-          else
-            echo "ℹ️ ViewManagers directory not found"
-          fi
 
       - name: 🔧 Patch codegen specs (undefined prop types)
         run: |
@@ -60,7 +58,7 @@ jobs:
                 sed -i 's/WithDefault<boolean, undefined>/boolean/g' "$f"
                 sed -i 's/WithDefault<string, undefined>/string/g' "$f"
               done
-          echo "✅ Codegen spec patches done"
+          echo "✅ Done"
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -108,8 +106,8 @@ jobs:
           BUILD_EXIT=${PIPESTATUS[0]}
           if [ $BUILD_EXIT -ne 0 ]; then
             echo "=== KEY ERRORS ==="
-            grep -E "(^error:|FAILED$|Caused by:|cannot find symbol|does not exist|Exception:)" \
-              /tmp/build.log | grep -v "^$" | head -30 || true
+            grep -E "(^error:|FAILED$|Caused by:|cannot find symbol|does not exist)" \
+              /tmp/build.log | head -30 || true
             exit $BUILD_EXIT
           fi
           echo "✅ BUILD SUCCESS"
@@ -118,11 +116,10 @@ jobs:
       - name: 💾 Save build error to repo
         if: failure()
         run: |
-          mkdir -p debug
           {
             echo "=== Run #${{ github.run_number }} ==="
             echo "=== KEY ERRORS ==="
-            grep -E "(^error:|FAILED$|Caused by:|cannot find symbol|does not exist|Exception:)" \
+            grep -E "(^error:|FAILED$|Caused by:|cannot find symbol|does not exist)" \
               /tmp/build.log | head -50 || true
             echo ""
             echo "=== LAST 80 LINES ==="
