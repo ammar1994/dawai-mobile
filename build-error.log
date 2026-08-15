@@ -1,4 +1,4 @@
-=== Run #695 ===
+=== Run #696 ===
 === KEY ERRORS ===
 FAILURE: Build failed with an exception.
 * What went wrong:
@@ -89,5 +89,5 @@ error: failed linking references.
 		at java.base/java.lang.Thread.run(Thread.java:840)
 
 
-BUILD FAILED in 3m 23s
-165 actionable tasks: 165 executed
+BUILD FAILED in 3m 35s
+157 actionable tasks: 157 executed
