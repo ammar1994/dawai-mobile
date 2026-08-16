@@ -1,70 +1,70 @@
-=== Run #723 ===
+=== Run #724 ===
 === KEY ERRORS ===
 FAILURE: Build failed with an exception.
 * What went wrong:
      com.dawaiapp-mergeDebugResources-32:/values/values.xml:435: error: style attribute 'android:attr/editTextBackgroundMode' not found.
      error: failed linking references.
 === LAST 80 LINES ===
-w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:22:38 'ReactFontManager' is deprecated. Deprecated in Java
-w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:77:24 'ReactFontManager' is deprecated. Deprecated in Java
-w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:91:24 'ReactFontManager' is deprecated. Deprecated in Java
-w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:112:48 Elvis operator (?:) always returns the left operand of non-nullable type ReadableMap
-w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:245:58 Elvis operator (?:) always returns the left operand of non-nullable type ReadableMap
-
-> Task :lottie-react-native:extractDebugAnnotations
-
-> Task :notifee_react-native:compileDebugJavaWithJavac
-/home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-native/android/src/main/java/io/invertase/notifee/NotifeeApiModule.java:42: warning: [removal] onCatalystInstanceDestroy() in NativeModule has been deprecated and marked for removal
-  public void onCatalystInstanceDestroy() {
-              ^
-Note: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-native/android/src/main/java/io/invertase/notifee/NotifeeReactUtils.java uses or overrides a deprecated API.
-Note: Recompile with -Xlint:deprecation for details.
-1 warning
-
-> Task :notifee_react-native:mergeDebugGeneratedProguardFiles
-> Task :notifee_react-native:mergeDebugConsumerProguardFiles
-
-> Task :d11_react-native-fast-image:compileDebugJavaWithJavac
-Note: [2] Wrote GeneratedAppGlideModule with: [com.bumptech.glide.integration.webp.WebpGlideLibraryModule, com.github.penfeizhou.animation.glide.GlideAnimationModule, com.bumptech.glide.integration.okhttp3.OkHttpLibraryGlideModule, com.bumptech.glide.integration.avif.AvifGlideModule, com.fastimage.svg.SvgModule, com.dylanvann.fastimage.FastImageOkHttpProgressGlideModule]
-Note: Some input files use or override a deprecated API.
-Note: Recompile with -Xlint:deprecation for details.
-Note: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@d11/react-native-fast-image/android/src/main/java/com/dylanvann/fastimage/FastImageViewWithUrl.java uses unchecked or unsafe operations.
-Note: Recompile with -Xlint:unchecked for details.
-
-> Task :notifee_react-native:mergeDebugShaders
-> Task :notifee_react-native:compileDebugShaders NO-SOURCE
-> Task :notifee_react-native:generateDebugAssets UP-TO-DATE
-> Task :notifee_react-native:packageDebugAssets
-> Task :notifee_react-native:prepareDebugArtProfile
-> Task :notifee_react-native:prepareLintJarForPublish
 > Task :lottie-react-native:compileDebugJavaWithJavac
 > Task :lottie-react-native:mergeDebugGeneratedProguardFiles
 > Task :lottie-react-native:mergeDebugConsumerProguardFiles
 > Task :lottie-react-native:processDebugJavaRes
+> Task :lottie-react-native:mergeDebugJavaResource
+> Task :lottie-react-native:syncDebugLibJars
+> Task :lottie-react-native:bundleDebugAar
+> Task :lottie-react-native:assembleDebug
+> Task :app:javaPreCompileDebug
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:copyReactNativeVectorIconFonts
+> Task :app:generateDebugAssets
+> Task :d11_react-native-fast-image:mergeDebugGeneratedProguardFiles
+> Task :d11_react-native-fast-image:mergeDebugConsumerProguardFiles
+> Task :react-native-bootsplash:generateCodegenSchemaFromJavaScript
+> Task :notifee_react-native:mergeDebugGeneratedProguardFiles
+> Task :notifee_react-native:mergeDebugConsumerProguardFiles
+> Task :d11_react-native-fast-image:mergeDebugShaders
+> Task :d11_react-native-fast-image:compileDebugShaders NO-SOURCE
+> Task :d11_react-native-fast-image:generateDebugAssets UP-TO-DATE
+> Task :d11_react-native-fast-image:packageDebugAssets
+> Task :notifee_react-native:mergeDebugShaders
+> Task :notifee_react-native:compileDebugShaders NO-SOURCE
+> Task :notifee_react-native:generateDebugAssets UP-TO-DATE
+> Task :d11_react-native-fast-image:prepareDebugArtProfile
+> Task :d11_react-native-fast-image:prepareLintJarForPublish
+> Task :notifee_react-native:packageDebugAssets
+> Task :notifee_react-native:prepareDebugArtProfile
+> Task :notifee_react-native:prepareLintJarForPublish
+
+> Task :d11_react-native-fast-image:processDebugManifest
+package="com.dylanvann.fastimage" found in source AndroidManifest.xml: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@d11/react-native-fast-image/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.dylanvann.fastimage" from the source AndroidManifest.xml: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@d11/react-native-fast-image/android/src/main/AndroidManifest.xml.
+
+> Task :d11_react-native-fast-image:processDebugJavaRes
 
 > Task :notifee_react-native:processDebugManifest
 package="io.invertase.notifee" found in source AndroidManifest.xml: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-native/android/src/main/AndroidManifest.xml.
 Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
 Recommendation: remove package="io.invertase.notifee" from the source AndroidManifest.xml: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-native/android/src/main/AndroidManifest.xml.
 
+> Task :d11_react-native-fast-image:writeDebugAarMetadata
+> Task :d11_react-native-fast-image:mergeDebugJavaResource
 > Task :notifee_react-native:processDebugJavaRes NO-SOURCE
+> Task :app:mergeDebugAssets
 > Task :notifee_react-native:mergeDebugJavaResource
-> Task :lottie-react-native:mergeDebugJavaResource
-> Task :app:javaPreCompileDebug
-> Task :app:mergeDebugShaders
-> Task :app:compileDebugShaders NO-SOURCE
-> Task :lottie-react-native:syncDebugLibJars
-> Task :app:copyReactNativeVectorIconFonts
-> Task :app:generateDebugAssets
-> Task :lottie-react-native:bundleDebugAar
-> Task :lottie-react-native:assembleDebug
 > Task :notifee_react-native:syncDebugLibJars
+> Task :app:desugarDebugFileDependencies
+> Task :d11_react-native-fast-image:syncDebugLibJars
+> Task :d11_react-native-fast-image:bundleDebugAar
+> Task :d11_react-native-fast-image:assembleDebug
 > Task :notifee_react-native:writeDebugAarMetadata
 > Task :notifee_react-native:bundleDebugAar
 > Task :notifee_react-native:assembleDebug
 > Task :app:processDebugResources FAILED
-> Task :app:mergeDebugAssets
-> Task :react-native-bootsplash:generateCodegenSchemaFromJavaScript
+> Task :react-native-bootsplash:generateCodegenArtifactsFromSchema
+> Task :app:compressDebugAssets
+> Task :app:checkDebugDuplicateClasses
 
 FAILURE: Build failed with an exception.
 
@@ -82,5 +82,5 @@ Execution failed for task ':app:processDebugResources'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 1m 22s
-103 actionable tasks: 93 executed, 10 up-to-date
+BUILD FAILED in 1m 21s
+117 actionable tasks: 107 executed, 10 up-to-date
