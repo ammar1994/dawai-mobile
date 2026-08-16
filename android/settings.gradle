@@ -15,19 +15,10 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
     ex.autolinkLibrariesFromCommand()
 }
 
-dependencyResolutionManagement {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url = uri("$rootDir/../node_modules/react-native/android") }
-        maven { url = uri("https://www.jitpack.io") }
-    }
-}
-
 rootProject.name = 'DawaiApp'
 include ':app'
 
-// Manual includes for native libraries (fallback if autolinking fails)
+// Manual includes for all native libraries
 include ':d11_react-native-fast-image'
 project(':d11_react-native-fast-image').projectDir = new File(rootProject.projectDir, '../node_modules/@d11/react-native-fast-image/android')
 
@@ -75,6 +66,3 @@ project(':react-native-screens').projectDir = new File(rootProject.projectDir, '
 
 include ':react-native-vector-icons'
 project(':react-native-vector-icons').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-vector-icons/android')
-
-include ':react-native-toast-message'
-project(':react-native-toast-message').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-toast-message/android')
