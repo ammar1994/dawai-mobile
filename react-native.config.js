@@ -1,7 +1,7 @@
 module.exports = {
   project: {
     android: {
-      packageName: 'com.dawai.pharmacy',
+      packageName: 'com.dawaiapp',
       sourceDir: './android',
     },
     ios: {
