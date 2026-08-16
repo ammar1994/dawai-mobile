@@ -1,4 +1,4 @@
-Run #730
+Run #732
 /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:14: error: package com.dylanvann.fastimage does not exist
 /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:16: error: package io.invertase.notifee does not exist
 /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:18: error: package com.reactcommunity.rndatetimepicker does not exist
@@ -30,6 +30,15 @@ Run #730
 /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:102: error: cannot find symbol
 /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:103: error: cannot find symbol
 --- LAST 60 ---
+  symbol:   class RNGestureHandlerPackage
+  location: class PackageList
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:98: error: cannot find symbol
+      new ImagePickerPackage(),
+          ^
+  symbol:   class ImagePickerPackage
+  location: class PackageList
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:99: error: cannot find symbol
+      new LinearGradientPackage(),
           ^
   symbol:   class LinearGradientPackage
   location: class PackageList
@@ -65,17 +74,8 @@ Run #730
   location: class PackageList
 32 errors
 
-> Task :react-native-gesture-handler:configureCMakeDebug[arm64-v8a]
-"Install CMake 3.22.1 v.3.22.1" ready.
-Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
-"Install CMake 3.22.1 v.3.22.1" complete.
-"Install CMake 3.22.1 v.3.22.1" finished.
-
-> Task :react-native-maps:compileDebugJavaWithJavac
-Note: Some input files use or override a deprecated API.
-Note: Recompile with -Xlint:deprecation for details.
-Note: Some input files use unchecked or unsafe operations.
-Note: Recompile with -Xlint:unchecked for details.
+> Task :react-native-permissions:compileDebugJavaWithJavac
+> Task :react-native-gesture-handler:configureCMakeDebug[armeabi-v7a]
 
 FAILURE: Build failed with an exception.
 
@@ -87,5 +87,5 @@ Execution failed for task ':app:compileDebugJavaWithJavac'.
 > Run with --info option to get more log output.
 > Run with --scan to get full insights.
 
-BUILD FAILED in 4m 41s
-284 actionable tasks: 284 executed
+BUILD FAILED in 4m 2s
+338 actionable tasks: 338 executed
