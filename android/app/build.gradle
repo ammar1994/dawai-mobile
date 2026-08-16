@@ -14,7 +14,7 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        applicationId "com.dawai.pharmacy"
+        applicationId "com.dawaiapp"
         minSdk         rootProject.ext.minSdkVersion
         targetSdk      rootProject.ext.targetSdkVersion
         versionCode    1
@@ -52,21 +52,17 @@ configurations.all {
 }
 
 dependencies {
-    // React Native core
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
 
-    // Firebase
     implementation platform("com.google.firebase:firebase-bom:33.7.0")
     implementation "com.google.firebase:firebase-messaging"
     implementation "com.google.firebase:firebase-analytics"
 
-    // Google Maps & Location
     implementation "com.google.android.gms:play-services-maps:18.2.0"
     implementation "com.google.android.gms:play-services-location:21.2.0"
 
-    // React Native Libraries (explicit dependencies for autolinking)
     implementation project(':d11_react-native-fast-image')
     implementation project(':notifee_react-native')
     implementation project(':react-native-community_datetimepicker')
