@@ -2,17 +2,8 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
-// Google Services: فقط عند وجود ملف حقيقي
-def gsFile = file("google-services.json")
-if (gsFile.exists()) {
-    def gsJson = new groovy.json.JsonSlurper().parse(gsFile)
-    if (gsJson.project_info.project_number != "000000000000") {
-        apply plugin: "com.google.gms.google-services"
-    }
-}
-
 react {
-    // autolinking يتولى كل شيء تلقائياً — لا تعدّل
+    // autolinking يتولى كل شيء تلقائياً
 }
 
 android {
@@ -65,11 +56,6 @@ dependencies {
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
-
-    // Firebase BOM
-    implementation platform("com.google.firebase:firebase-bom:33.7.0")
-    implementation "com.google.firebase:firebase-messaging"
-    implementation "com.google.firebase:firebase-analytics"
 
     // Google Maps
     implementation "com.google.android.gms:play-services-maps:18.2.0"
