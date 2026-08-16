@@ -4,7 +4,7 @@ apply plugin: "com.facebook.react"
 apply plugin: "com.google.gms.google-services"
 
 react {
-    // الإعدادات الافتراضية
+    // الإعدادات الافتراضية لـ React Native
 }
 
 android {
@@ -14,7 +14,7 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        applicationId "com.dawaiapp"
+        applicationId "com.dawai.pharmacy"
         minSdk         rootProject.ext.minSdkVersion
         targetSdk      rootProject.ext.targetSdkVersion
         versionCode    1
@@ -42,8 +42,7 @@ android {
     }
 }
 
-// Fix: force AppCompat 1.6.1 to avoid android:attr/editTextBackgroundMode error
-// (AppCompat 1.7.0 introduced this attr which breaks AAPT2 with RN 0.76.x)
+// Force compatible versions
 configurations.all {
     resolutionStrategy {
         force 'androidx.appcompat:appcompat:1.6.1'
@@ -54,12 +53,17 @@ configurations.all {
 }
 
 dependencies {
+    // React Native core
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
+
+    // Firebase
     implementation platform("com.google.firebase:firebase-bom:33.7.0")
     implementation "com.google.firebase:firebase-messaging"
     implementation "com.google.firebase:firebase-analytics"
+
+    // Google Maps & Location
     implementation "com.google.android.gms:play-services-maps:18.2.0"
     implementation "com.google.android.gms:play-services-location:21.2.0"
 }
