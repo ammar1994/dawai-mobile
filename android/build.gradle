@@ -18,6 +18,6 @@ buildscript {
     }
 }
 
-plugins {
-    id("com.facebook.react.rootproject")
-}
+// ✅ هذا الملف يعمل مع RN 0.76 — plugin يأتي من includeBuild في settings.gradle
+// إذا فشل، يعني settings.gradle لم يُشغَّل قبله
+apply plugin: "com.facebook.react.rootproject"
