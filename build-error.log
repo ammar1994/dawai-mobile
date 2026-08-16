@@ -1,79 +1,58 @@
-=== Run #724 ===
-=== KEY ERRORS ===
+Run #729
 FAILURE: Build failed with an exception.
-* What went wrong:
-     com.dawaiapp-mergeDebugResources-32:/values/values.xml:435: error: style attribute 'android:attr/editTextBackgroundMode' not found.
-     error: failed linking references.
-=== LAST 80 LINES ===
-> Task :lottie-react-native:compileDebugJavaWithJavac
-> Task :lottie-react-native:mergeDebugGeneratedProguardFiles
-> Task :lottie-react-native:mergeDebugConsumerProguardFiles
-> Task :lottie-react-native:processDebugJavaRes
-> Task :lottie-react-native:mergeDebugJavaResource
-> Task :lottie-react-native:syncDebugLibJars
-> Task :lottie-react-native:bundleDebugAar
-> Task :lottie-react-native:assembleDebug
-> Task :app:javaPreCompileDebug
-> Task :app:mergeDebugShaders
-> Task :app:compileDebugShaders NO-SOURCE
-> Task :app:copyReactNativeVectorIconFonts
-> Task :app:generateDebugAssets
-> Task :d11_react-native-fast-image:mergeDebugGeneratedProguardFiles
-> Task :d11_react-native-fast-image:mergeDebugConsumerProguardFiles
-> Task :react-native-bootsplash:generateCodegenSchemaFromJavaScript
-> Task :notifee_react-native:mergeDebugGeneratedProguardFiles
-> Task :notifee_react-native:mergeDebugConsumerProguardFiles
-> Task :d11_react-native-fast-image:mergeDebugShaders
-> Task :d11_react-native-fast-image:compileDebugShaders NO-SOURCE
-> Task :d11_react-native-fast-image:generateDebugAssets UP-TO-DATE
-> Task :d11_react-native-fast-image:packageDebugAssets
-> Task :notifee_react-native:mergeDebugShaders
-> Task :notifee_react-native:compileDebugShaders NO-SOURCE
-> Task :notifee_react-native:generateDebugAssets UP-TO-DATE
-> Task :d11_react-native-fast-image:prepareDebugArtProfile
-> Task :d11_react-native-fast-image:prepareLintJarForPublish
-> Task :notifee_react-native:packageDebugAssets
-> Task :notifee_react-native:prepareDebugArtProfile
-> Task :notifee_react-native:prepareLintJarForPublish
-
-> Task :d11_react-native-fast-image:processDebugManifest
-package="com.dylanvann.fastimage" found in source AndroidManifest.xml: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@d11/react-native-fast-image/android/src/main/AndroidManifest.xml.
-Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
-Recommendation: remove package="com.dylanvann.fastimage" from the source AndroidManifest.xml: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@d11/react-native-fast-image/android/src/main/AndroidManifest.xml.
-
-> Task :d11_react-native-fast-image:processDebugJavaRes
-
-> Task :notifee_react-native:processDebugManifest
-package="io.invertase.notifee" found in source AndroidManifest.xml: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-native/android/src/main/AndroidManifest.xml.
-Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
-Recommendation: remove package="io.invertase.notifee" from the source AndroidManifest.xml: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-native/android/src/main/AndroidManifest.xml.
-
-> Task :d11_react-native-fast-image:writeDebugAarMetadata
-> Task :d11_react-native-fast-image:mergeDebugJavaResource
-> Task :notifee_react-native:processDebugJavaRes NO-SOURCE
-> Task :app:mergeDebugAssets
-> Task :notifee_react-native:mergeDebugJavaResource
-> Task :notifee_react-native:syncDebugLibJars
-> Task :app:desugarDebugFileDependencies
-> Task :d11_react-native-fast-image:syncDebugLibJars
-> Task :d11_react-native-fast-image:bundleDebugAar
-> Task :d11_react-native-fast-image:assembleDebug
-> Task :notifee_react-native:writeDebugAarMetadata
-> Task :notifee_react-native:bundleDebugAar
-> Task :notifee_react-native:assembleDebug
-> Task :app:processDebugResources FAILED
-> Task :react-native-bootsplash:generateCodegenArtifactsFromSchema
-> Task :app:compressDebugAssets
-> Task :app:checkDebugDuplicateClasses
-
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':app:processDebugResources'.
-> A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
-   > Android resource linking failed
-     com.dawaiapp-mergeDebugResources-32:/values/values.xml:435: error: style attribute 'android:attr/editTextBackgroundMode' not found.
-     error: failed linking references.
+    CMakeLists.txt:31 (include) : com.android.ide.common.process.ProcessException: -- The C compiler identification is Clang 18.0.2
+  Caused by: com.android.ide.common.process.ProcessException: Error while executing process /usr/local/lib/android/sdk/cmake/3.22.1/bin/cmake with arguments {-H/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native/ReactAndroid/cmake-utils/default-app-setup -DCMAKE_SYSTEM_NAME=Android -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_PLATFORM=android-24 -DANDROID_ABI=arm64-v8a -DCMAKE_ANDROID_ARCH_ABI=arm64-v8a -DANDROID_NDK=/usr/local/lib/android/sdk/ndk/27.1.12297006 -DCMAKE_ANDROID_NDK=/usr/local/lib/android/sdk/ndk/27.1.12297006 -DCMAKE_TOOLCHAIN_FILE=/usr/local/lib/android/sdk/ndk/27.1.12297006/build/cmake/android.toolchain.cmake -DCMAKE_MAKE_PROGRAM=/usr/local/lib/android/sdk/cmake/3.22.1/bin/ninja -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/cxx/Debug/441k372r/obj/arm64-v8a -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/cxx/Debug/441k372r/obj/arm64-v8a -DCMAKE_BUILD_TYPE=Debug -DCMAKE_FIND_ROOT_PATH=/home/runner/work/dawai-mobile/dawai-mobile/android/app/.cxx/Debug/441k372r/prefab/arm64-v8a/prefab -B/home/runner/work/dawai-mobile/dawai-mobile/android/app/.cxx/Debug/441k372r/arm64-v8a -GNinja -DPROJECT_BUILD_DIR=/home/runner/work/dawai-mobile/dawai-mobile/android/app/build -DREACT_ANDROID_DIR=/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native/ReactAndroid -DANDROID_STL=c++_shared -DANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON}
+  Caused by: org.gradle.process.internal.ExecException: Process 'command '/usr/local/lib/android/sdk/cmake/3.22.1/bin/cmake'' finished with non-zero exit value 1
+--- LAST 60 ---
+  	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+  	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+  	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+  	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+  	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+  	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+  	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
+  	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+  	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+  	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+  	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+  	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+  	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+  	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+  	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+  	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+  	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+  	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:200)
+  	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:195)
+  	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+  	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+  	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
+  	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+  	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+  	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
+  	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+  	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+  	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+  	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+  	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+  	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:80)
+  	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+  	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+  	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:463)
+  	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+  	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+  	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+  	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+  	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+  	at java.base/java.lang.Thread.run(Thread.java:840)
+  Caused by: com.android.ide.common.process.ProcessException: Error while executing process /usr/local/lib/android/sdk/cmake/3.22.1/bin/cmake with arguments {-H/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native/ReactAndroid/cmake-utils/default-app-setup -DCMAKE_SYSTEM_NAME=Android -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_SYSTEM_VERSION=24 -DANDROID_PLATFORM=android-24 -DANDROID_ABI=arm64-v8a -DCMAKE_ANDROID_ARCH_ABI=arm64-v8a -DANDROID_NDK=/usr/local/lib/android/sdk/ndk/27.1.12297006 -DCMAKE_ANDROID_NDK=/usr/local/lib/android/sdk/ndk/27.1.12297006 -DCMAKE_TOOLCHAIN_FILE=/usr/local/lib/android/sdk/ndk/27.1.12297006/build/cmake/android.toolchain.cmake -DCMAKE_MAKE_PROGRAM=/usr/local/lib/android/sdk/cmake/3.22.1/bin/ninja -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/cxx/Debug/441k372r/obj/arm64-v8a -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/intermediates/cxx/Debug/441k372r/obj/arm64-v8a -DCMAKE_BUILD_TYPE=Debug -DCMAKE_FIND_ROOT_PATH=/home/runner/work/dawai-mobile/dawai-mobile/android/app/.cxx/Debug/441k372r/prefab/arm64-v8a/prefab -B/home/runner/work/dawai-mobile/dawai-mobile/android/app/.cxx/Debug/441k372r/arm64-v8a -GNinja -DPROJECT_BUILD_DIR=/home/runner/work/dawai-mobile/dawai-mobile/android/app/build -DREACT_ANDROID_DIR=/home/runner/work/dawai-mobile/dawai-mobile/node_modules/react-native/ReactAndroid -DANDROID_STL=c++_shared -DANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON}
+  	at com.android.build.gradle.internal.process.GradleProcessResult.buildProcessException(GradleProcessResult.java:73)
+  	at com.android.build.gradle.internal.process.GradleProcessResult.assertNormalExitValue(GradleProcessResult.java:48)
+  	at com.android.build.gradle.internal.cxx.process.ExecuteProcessKt.execute(ExecuteProcess.kt:277)
+  	... 144 more
+  Caused by: org.gradle.process.internal.ExecException: Process 'command '/usr/local/lib/android/sdk/cmake/3.22.1/bin/cmake'' finished with non-zero exit value 1
+  	at org.gradle.process.internal.DefaultExecHandle$ExecResultImpl.assertNormalExitValue(DefaultExecHandle.java:442)
+  	at com.android.build.gradle.internal.process.GradleProcessResult.assertNormalExitValue(GradleProcessResult.java:46)
+  	... 145 more
 
 
 * Try:
@@ -82,5 +61,5 @@ Execution failed for task ':app:processDebugResources'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 1m 21s
-117 actionable tasks: 107 executed, 10 up-to-date
+BUILD FAILED in 4m 26s
+218 actionable tasks: 218 executed
