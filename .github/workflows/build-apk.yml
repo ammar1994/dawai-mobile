@@ -35,7 +35,6 @@ jobs:
         run: |
           if [ -d "node_modules/@react-native/gradle-plugin" ]; then
             echo "✅ @react-native/gradle-plugin found"
-            ls node_modules/@react-native/gradle-plugin/
           else
             echo "❌ @react-native/gradle-plugin MISSING"
             ls node_modules/@react-native/ || true
@@ -74,9 +73,11 @@ jobs:
           else
             {
               echo "Run #${{ github.run_number }}"
-              echo "FAILURE: Build failed with an exception."
-              echo "--- LAST 100 ---"
-              tail -100 /tmp/build.log
+              echo "=== ERROR SUMMARY ==="
+              grep -E "What went wrong|Execution failed|Caused by:|> Task" /tmp/build.log | grep -v "at org\." | head -40
+              echo ""
+              echo "=== LAST 60 LINES ==="
+              tail -60 /tmp/build.log
             } > build-error.log
           fi
           git config user.email "ci@github.com"
@@ -91,7 +92,7 @@ jobs:
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             echo "✅ APK جاهز"
           else
-            grep -E "What went wrong|Caused by:|error:" /tmp/build.log | head -30 || true
+            grep -E "What went wrong|Caused by:|error:|FAILED" /tmp/build.log | grep -v "at org\." | head -30 || true
             exit 1
           fi
 
