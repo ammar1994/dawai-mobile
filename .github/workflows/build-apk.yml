@@ -5,6 +5,9 @@ on:
   push:
     branches: [ main, master ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Debug APK
@@ -13,6 +16,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -25,6 +30,16 @@ jobs:
 
       - name: Install deps
         run: npm install --legacy-peer-deps
+
+      - name: Verify gradle plugin installed
+        run: |
+          if [ -d "node_modules/@react-native/gradle-plugin" ]; then
+            echo "✅ @react-native/gradle-plugin found"
+            ls node_modules/@react-native/gradle-plugin/
+          else
+            echo "❌ @react-native/gradle-plugin MISSING"
+            ls node_modules/@react-native/ || true
+          fi
 
       - uses: android-actions/setup-android@v3
         with:
@@ -60,22 +75,23 @@ jobs:
             {
               echo "Run #${{ github.run_number }}"
               echo "FAILURE: Build failed with an exception."
-              echo "--- LAST 60 ---"
-              tail -60 /tmp/build.log
+              echo "--- LAST 100 ---"
+              tail -100 /tmp/build.log
             } > build-error.log
           fi
           git config user.email "ci@github.com"
           git config user.name "GitHub Actions"
+          git pull --rebase origin main || true
           git add build-error.log
           git diff --cached --quiet || git commit -m "ci: build result #${{ github.run_number }} [ci skip]"
-          git push || true
+          git push origin main || true
 
       - name: Check result
         run: |
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             echo "✅ APK جاهز"
           else
-            grep -E "What went wrong|Caused by:|error:" /tmp/build.log | head -20 || true
+            grep -E "What went wrong|Caused by:|error:" /tmp/build.log | head -30 || true
             exit 1
           fi
 
