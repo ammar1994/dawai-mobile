@@ -14,10 +14,7 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:8.6.1")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
-        classpath("com.google.gms:google-services:4.4.2")
     }
 }
 
-// ✅ هذا الملف يعمل مع RN 0.76 — plugin يأتي من includeBuild في settings.gradle
-// إذا فشل، يعني settings.gradle لم يُشغَّل قبله
 apply plugin: "com.facebook.react.rootproject"
