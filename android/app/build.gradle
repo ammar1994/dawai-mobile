@@ -1,7 +1,13 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-apply plugin: "com.google.gms.google-services"
+
+// Apply google-services only if real config exists
+if (file("google-services.json").exists() &&
+    new groovy.json.JsonSlurper().parse(file("google-services.json"))
+        .project_info.project_number != "000000000000") {
+    apply plugin: "com.google.gms.google-services"
+}
 
 react {
     // React Native autolinking
