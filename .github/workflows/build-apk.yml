@@ -34,26 +34,20 @@ jobs:
           EXT="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
           [ -f "$EXT" ] && sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$EXT" && echo "✅ Patched" || echo "⚠️ Not found"
 
-      - name: 🤖 Setup Android SDK + NDK
+      - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
 
-      - name: 📱 Install SDK + NDK packages
+      - name: 📱 Install SDK packages
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager \
-            "platforms;android-35" \
-            "build-tools;35.0.0" \
-            "ndk;27.1.12297006" \
-            "cmake;3.22.1"
-          echo "✅ NDK: $(ls $ANDROID_HOME/ndk/ 2>/dev/null)"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006" "cmake;3.22.1"
 
       - name: 🔥 Setup Firebase google-services.json
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
-            echo "✅ Real google-services.json"
           else
             cat > android/app/google-services.json << 'JSON_EOF'
           {
@@ -74,22 +68,13 @@ jobs:
             "configuration_version": "1"
           }
           JSON_EOF
-            echo "⚠️ Using dummy google-services.json (package: com.dawai.pharmacy)"
           fi
 
       - name: 🗺️ Maps API Key
         run: |
-          if [ -n "${{ secrets.MAPS_API_KEY }}" ]; then
-            sed -i "s/YOUR_MAPS_API_KEY/${{ secrets.MAPS_API_KEY }}/g" android/app/src/main/AndroidManifest.xml
-          else
-            sed -i "s/YOUR_MAPS_API_KEY/AIzaSyDummy_maps_key/g" android/app/src/main/AndroidManifest.xml
-          fi
-
-      - name: 🔤 Copy vector-icons fonts
-        run: |
-          mkdir -p android/app/src/main/assets/fonts
-          cp node_modules/react-native-vector-icons/Fonts/*.ttf android/app/src/main/assets/fonts/ 2>/dev/null || true
-          echo "Fonts: $(ls android/app/src/main/assets/fonts/ | wc -l)"
+          KEY="${{ secrets.MAPS_API_KEY }}"
+          [ -z "$KEY" ] && KEY="AIzaSyDummy_maps_key"
+          sed -i "s/YOUR_MAPS_API_KEY/$KEY/g" android/app/src/main/AndroidManifest.xml
 
       - name: 🔑 Create Debug Keystore
         run: |
@@ -101,9 +86,7 @@ jobs:
             -dname "CN=Android Debug,O=Android,C=US"
 
       - name: 🛠️ Create local.properties
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "ndk.dir=$ANDROID_HOME/ndk/27.1.12297006" >> android/local.properties
+        run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: 🏗️ Build Debug APK
         working-directory: android
@@ -117,11 +100,9 @@ jobs:
       - name: ❌ Show errors on failure
         if: failure()
         run: |
-          echo "====== LAST 120 LINES ======"
-          tail -120 /tmp/build.log || true
           echo "====== KEY ERRORS ======"
-          grep -E "error:|FAILURE|Caused by:|What went wrong|cannot find symbol|Exception" \
-            /tmp/build.log | grep -v "^\s*at " | head -50 || true
+          grep -E "error:|FAILURE|Caused by:|What went wrong|Duplicate|cannot find" \
+            /tmp/build.log | grep -v "^\s*at " | head -40 || true
 
       - name: 📤 Upload APK
         if: success()
