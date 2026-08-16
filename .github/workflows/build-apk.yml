@@ -44,30 +44,13 @@ jobs:
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006" "cmake;3.22.1"
 
-      - name: 🔥 Setup Firebase google-services.json
+      - name: 🔥 Override Firebase google-services.json (if secret exists)
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+            echo "✅ Using secret google-services.json"
           else
-            cat > android/app/google-services.json << 'JSON_EOF'
-          {
-            "project_info": {
-              "project_number": "123456789000",
-              "project_id": "dawai-pharmacy-debug",
-              "storage_bucket": "dawai-pharmacy-debug.appspot.com"
-            },
-            "client": [{
-              "client_info": {
-                "mobilesdk_app_id": "1:123456789000:android:abcdef1234567890",
-                "android_client_info": { "package_name": "com.dawai.pharmacy" }
-              },
-              "oauth_client": [],
-              "api_key": [{ "current_key": "AIzaSyDummy_key_for_debug_build_only" }],
-              "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
-            }],
-            "configuration_version": "1"
-          }
-          JSON_EOF
+            echo "✅ Using repo google-services.json (com.dawaiapp)"
           fi
 
       - name: 🗺️ Maps API Key
@@ -101,7 +84,7 @@ jobs:
         if: failure()
         run: |
           echo "====== KEY ERRORS ======"
-          grep -E "error:|FAILURE|Caused by:|What went wrong|Duplicate|cannot find" \
+          grep -E "error:|FAILURE|Caused by:|cannot find|does not exist|Duplicate|No matching" \
             /tmp/build.log | grep -v "^\s*at " | head -40 || true
 
       - name: 📤 Upload APK
