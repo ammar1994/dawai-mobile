@@ -1,8 +1,8 @@
 /**
  * notifications.service.ts
  * يتعامل مع:
- *  - Firebase Cloud Messaging (FCM) — Push من الـ Backend
  *  - Notifee v9 — إشعارات التذكيرات المحلية
+ *  - Firebase: معطّل مؤقتاً (يحتاج google-services.json حقيقي)
  */
 
 import notifee, {
@@ -11,7 +11,6 @@ import notifee, {
   TimestampTrigger,
   TriggerType,
 } from '@notifee/react-native';
-import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
 import type { Reminder } from '../types';
 
@@ -19,7 +18,7 @@ import type { Reminder } from '../types';
 const CHANNEL_REMINDERS = 'dawai_reminders';
 const CHANNEL_ORDERS    = 'dawai_orders';
 
-// ─── إعداد القنوات (يُستدعى مرة واحدة عند بدء التطبيق) ────────────────────
+// ─── إعداد القنوات ──────────────────────────────────────────────────────────
 export async function setupNotificationChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
 
@@ -42,96 +41,42 @@ export async function setupNotificationChannels(): Promise<void> {
 
 // ─── طلب الإذن ──────────────────────────────────────────────────────────────
 export async function requestPermission(): Promise<boolean> {
-  const authStatus = await messaging().requestPermission();
-  const enabled =
-    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-
-  if (enabled && Platform.OS === 'android') {
-    await notifee.requestPermission();
-  }
-
-  return enabled;
+  await notifee.requestPermission();
+  return true;
 }
 
-// ─── الحصول على FCM Token ────────────────────────────────────────────────────
+// ─── FCM Token (stub — Firebase معطّل مؤقتاً) ──────────────────────────────
 export async function getFCMToken(): Promise<string | null> {
-  try {
-    const token = await messaging().getToken();
-    return token;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
-// ─── معالجة الإشعارات عند فتح التطبيق (Foreground) ─────────────────────────
+export async function registerPushToken(_token: string): Promise<void> {
+  // Firebase معطّل — لا شيء
+}
+
+// ─── Foreground Handler (Notifee فقط) ──────────────────────────────────────
 export function setupForegroundHandler(): () => void {
-  // Firebase foreground
-  const unsubscribeFCM = messaging().onMessage(async remoteMessage => {
-    const { notification, data } = remoteMessage;
-    if (!notification) return;
-
-    await notifee.displayNotification({
-      title  : notification.title ?? 'دوائي',
-      body   : notification.body  ?? '',
-      android: {
-        channelId : CHANNEL_ORDERS,
-        smallIcon : 'ic_notification',
-        pressAction: { id: 'default' },
-        extras: data as Record<string, string>,
-      },
-    });
+  const unsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
+    console.log('Notifee foreground event:', type, detail);
   });
-
-  // Notifee foreground events
-  const unsubscribeNotifee = notifee.onForegroundEvent(({ type, detail }) => {
-    // يمكن معالجة أحداث الضغط هنا إذا لزم
-    void type;
-    void detail;
-  });
-
-  return () => {
-    unsubscribeFCM();
-    unsubscribeNotifee();
-  };
+  return unsubscribe;
 }
 
-// ─── Deep link عند فتح الإشعار من الـ Background/Quit ──────────────────────
+// ─── Deep Link handler ──────────────────────────────────────────────────────
 export function handleNotificationOpen(
-  navigate: (screen: string, params?: object) => void,
+  _callback: (screen: string, params: object) => void,
 ): void {
-  // عند فتح التطبيق من إشعار (Quit state)
-  messaging()
-    .getInitialNotification()
-    .then(remoteMessage => {
-      if (remoteMessage?.data?.type === 'ORDER_STATUS_UPDATED') {
-        const orderId = remoteMessage.data.orderId as string;
-        if (orderId) navigate('OrderDetail', { orderId });
-      }
-    });
-
-  // عند الضغط على إشعار (Background state)
-  messaging().onNotificationOpenedApp(remoteMessage => {
-    if (remoteMessage?.data?.type === 'ORDER_STATUS_UPDATED') {
-      const orderId = remoteMessage.data.orderId as string;
-      if (orderId) navigate('OrderDetail', { orderId });
-    }
-  });
+  // Firebase معطّل مؤقتاً
 }
 
-// ─── جدولة إشعارات تذكير الدواء ─────────────────────────────────────────────
-// ⚠️ RepeatFrequency.DAILY = 0 وليس 1
-export async function scheduleReminderNotifications(reminder: Reminder): Promise<void> {
-  // أولاً: احذف الإشعارات القديمة لهذا التذكير
-  await cancelReminderNotifications(reminder.id);
-
+// ─── جدولة إشعار تذكير ──────────────────────────────────────────────────────
+export async function scheduleReminderNotification(
+  reminder: Reminder,
+): Promise<void> {
   if (!reminder.isActive) return;
 
-  for (let i = 0; i < reminder.times.length; i++) {
-    const time = reminder.times[i];
-    const [hours, minutes] = time.split(':').map(Number);
-
-    // تحديد وقت أول إشعار (اليوم أو الغد إن مضى الوقت)
+  for (const timeStr of reminder.times) {
+    const [hours, minutes] = timeStr.split(':').map(Number);
     const trigger = new Date();
     trigger.setHours(hours, minutes, 0, 0);
     if (trigger.getTime() <= Date.now()) {
@@ -141,40 +86,24 @@ export async function scheduleReminderNotifications(reminder: Reminder): Promise
     const timestampTrigger: TimestampTrigger = {
       type      : TriggerType.TIMESTAMP,
       timestamp : trigger.getTime(),
-      repeatFrequency: RepeatFrequency.DAILY, // = 0
+      repeatFrequency: RepeatFrequency.DAILY,
     };
 
     await notifee.createTriggerNotification(
       {
-        id     : `reminder_${reminder.id}_${i}`,
-        title  : `💊 ${reminder.medicineName}`,
-        body   : `حان وقت جرعة ${reminder.dosage} — ${time}`,
-        android: {
-          channelId   : CHANNEL_REMINDERS,
-          smallIcon   : 'ic_notification',
-          pressAction : { id: 'default' },
-          importance  : AndroidImportance.HIGH,
-        },
+        id    : `reminder_${reminder.id}_${timeStr}`,
+        title : `💊 ${reminder.medicineName}`,
+        body  : `الجرعة: ${reminder.dosage} — الوقت: ${timeStr}`,
+        android: { channelId: CHANNEL_REMINDERS, smallIcon: 'ic_notification' },
       },
       timestampTrigger,
     );
   }
 }
 
-// ─── إلغاء إشعارات تذكير محدد ───────────────────────────────────────────────
+// ─── إلغاء إشعارات تذكير ────────────────────────────────────────────────────
 export async function cancelReminderNotifications(reminderId: string): Promise<void> {
   const triggers = await notifee.getTriggerNotificationIds();
   const toCancel = triggers.filter(id => id.startsWith(`reminder_${reminderId}_`));
-  if (toCancel.length > 0) {
-    await notifee.cancelTriggerNotifications(toCancel);
-  }
-}
-
-// ─── إلغاء جميع إشعارات التذكيرات ──────────────────────────────────────────
-export async function cancelAllReminderNotifications(): Promise<void> {
-  const triggers = await notifee.getTriggerNotificationIds();
-  const toCancel = triggers.filter(id => id.startsWith('reminder_'));
-  if (toCancel.length > 0) {
-    await notifee.cancelTriggerNotifications(toCancel);
-  }
+  await Promise.all(toCancel.map(id => notifee.cancelTriggerNotification(id)));
 }
