@@ -29,15 +29,11 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🔍 Verify node_modules/@react-native/gradle-plugin
+      - name: 🔍 Verify gradle-plugin
         run: |
-          if [ -d "node_modules/@react-native/gradle-plugin" ]; then
-            echo "✅ gradle-plugin موجود"
-            ls node_modules/@react-native/gradle-plugin/
-          else
-            echo "❌ gradle-plugin غير موجود"
-            exit 1
-          fi
+          ls node_modules/@react-native/gradle-plugin/
+          echo "✅ gradle-plugin موجود"
+          cat android/gradle/wrapper/gradle-wrapper.properties
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -54,7 +50,7 @@ jobs:
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
           fi
-          echo "✅ google-services.json جاهز"
+          cat android/app/google-services.json | python3 -c "import sys,json; d=json.load(sys.stdin); print('✅ project_id:', d['project_info']['project_id'])"
 
       - name: 🗺️ Maps API Key
         run: |
@@ -62,7 +58,7 @@ jobs:
           [ -z "$KEY" ] && KEY="AIzaSyDummy_maps_key"
           sed -i "s/YOUR_MAPS_API_KEY/$KEY/g" android/app/src/main/AndroidManifest.xml
 
-      - name: 🔑 Create Debug Keystore
+      - name: 🔑 Debug Keystore
         run: |
           keytool -genkeypair -v \
             -keystore android/app/debug.keystore \
@@ -71,25 +67,32 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: 🛠️ Create local.properties
+      - name: 🛠️ local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
       - name: 🏗️ Build Debug APK
         working-directory: android
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8"
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee /tmp/build.log
+          # حذف Gradle cache القديم لضمان استخدام الإصدار الصحيح
+          rm -rf $HOME/.gradle/wrapper/dists/gradle-8.7*
+          echo "=== Gradle version ==="
+          ./gradlew --version
+          echo "=== Starting build ==="
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
 
       - name: ❌ Show errors on failure
         if: failure()
         run: |
-          echo "====== FIRST 100 ERROR LINES ======"
-          grep -n -E "error:|FAILURE|Plugin.*not found|Could not|UnknownPlugin|does not exist" \
-            /tmp/build.log | head -60 || true
-          echo "====== LAST 50 LINES OF LOG ======"
-          tail -50 /tmp/build.log || true
+          echo "====== ERRORS ======"
+          grep -n -E "error:|FAILURE|Plugin.*not found|Could not|UnknownPlugin|cannot find symbol|does not exist" \
+            /tmp/build.log | grep -v "^\s*at " | head -50 || true
+          echo "====== LAST 60 LINES ======"
+          tail -60 /tmp/build.log || true
 
       - name: 📤 Upload APK
         if: success()
@@ -99,13 +102,12 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: 📊 Build Summary
+      - name: 📊 Summary
         if: always()
         run: |
-          echo "## نتيجة البناء" >> $GITHUB_STEP_SUMMARY
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-            echo "✅ APK جاهز — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
+            echo "✅ APK جاهز — $SIZE" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
           fi
