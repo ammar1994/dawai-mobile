@@ -1,91 +1,62 @@
-Run #733
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:14: error: package com.dylanvann.fastimage does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:16: error: package io.invertase.notifee does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:18: error: package com.reactcommunity.rndatetimepicker does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:20: error: package io.invertase.firebase.app does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:22: error: package io.invertase.firebase.messaging does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:24: error: package com.airbnb.android.react.lottie does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:26: error: package com.zoontek.rnbootsplash does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:28: error: package com.swmansion.gesturehandler does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:30: error: package com.imagepicker does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:32: error: package com.BV.LinearGradient does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:34: error: package com.rnmaps.maps does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:36: error: package com.mrousavy.mmkv does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:38: error: package com.zoontek.rnpermissions does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:40: error: package com.th3rdwave.safeareacontext does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:42: error: package com.swmansion.rnscreens does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:44: error: package com.oblador.vectoricons does not exist
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:90: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:91: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:92: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:93: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:94: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:95: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:96: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:97: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:98: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:99: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:100: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:101: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:102: error: cannot find symbol
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:103: error: cannot find symbol
+Run #735
+FAILURE: Build failed with an exception.
 --- LAST 60 ---
-  symbol:   class RNGestureHandlerPackage
-  location: class PackageList
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:98: error: cannot find symbol
-      new ImagePickerPackage(),
-          ^
-  symbol:   class ImagePickerPackage
-  location: class PackageList
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:99: error: cannot find symbol
-      new LinearGradientPackage(),
-          ^
-  symbol:   class LinearGradientPackage
-  location: class PackageList
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:100: error: cannot find symbol
-      new MapsPackage(),
-          ^
-  symbol:   class MapsPackage
-  location: class PackageList
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:101: error: cannot find symbol
-      new MmkvPackage(),
-          ^
-  symbol:   class MmkvPackage
-  location: class PackageList
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:102: error: cannot find symbol
-      new RNPermissionsPackage(),
-          ^
-  symbol:   class RNPermissionsPackage
-  location: class PackageList
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:103: error: cannot find symbol
-      new SafeAreaContextPackage(),
-          ^
-  symbol:   class SafeAreaContextPackage
-  location: class PackageList
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:104: error: cannot find symbol
-      new RNScreensPackage(),
-          ^
-  symbol:   class RNScreensPackage
-  location: class PackageList
-/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:105: error: cannot find symbol
-      new VectorIconsPackage()
-          ^
-  symbol:   class VectorIconsPackage
-  location: class PackageList
-32 errors
+> Task :lottie-react-native:extractDeepLinksForAarDebug
+> Task :lottie-react-native:generateDebugRFile
+> Task :lottie-react-native:javaPreCompileDebug
+> Task :notifee_react-native:generateDebugRFile
 
-> Task :react-native-permissions:compileDebugJavaWithJavac
-> Task :react-native-gesture-handler:buildCMakeDebug[arm64-v8a]
+> Task :lottie-react-native:compileDebugKotlin
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewManagerImpl.kt:12:34 'MapBuilder' is deprecated. Deprecated in Java
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewManagerImpl.kt:21:17 'MapBuilder' is deprecated. Deprecated in Java
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewManagerImpl.kt:72:16 'MapBuilder' is deprecated. Deprecated in Java
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewManagerImpl.kt:74:13 'MapBuilder' is deprecated. Deprecated in Java
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewManagerImpl.kt:76:13 'MapBuilder' is deprecated. Deprecated in Java
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewManagerImpl.kt:78:13 'MapBuilder' is deprecated. Deprecated in Java
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:22:38 'ReactFontManager' is deprecated. Deprecated in Java
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:77:24 'ReactFontManager' is deprecated. Deprecated in Java
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:91:24 'ReactFontManager' is deprecated. Deprecated in Java
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:112:48 Elvis operator (?:) always returns the left operand of non-nullable type ReadableMap
+w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:245:58 Elvis operator (?:) always returns the left operand of non-nullable type ReadableMap
+
+> Task :lottie-react-native:extractDebugAnnotations
+> Task :notifee_react-native:extractDebugAnnotations
+> Task :d11_react-native-fast-image:extractDebugAnnotations
+> Task :notifee_react-native:extractDeepLinksForAarDebug
+> Task :notifee_react-native:javaPreCompileDebug
+
+> Task :notifee_react-native:compileDebugJavaWithJavac
+/home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-native/android/src/main/java/io/invertase/notifee/NotifeeApiModule.java:42: warning: [removal] onCatalystInstanceDestroy() in NativeModule has been deprecated and marked for removal
+  public void onCatalystInstanceDestroy() {
+              ^
+Note: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-native/android/src/main/java/io/invertase/notifee/NotifeeReactUtils.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+1 warning
+
+> Task :app:checkDebugAarMetadata
+> Task :app:generateDebugResValues
+> Task :app:processDebugGoogleServices FAILED
+
+> Task :d11_react-native-fast-image:compileDebugJavaWithJavac
+Note: [2] Wrote GeneratedAppGlideModule with: [com.bumptech.glide.integration.webp.WebpGlideLibraryModule, com.github.penfeizhou.animation.glide.GlideAnimationModule, com.bumptech.glide.integration.okhttp3.OkHttpLibraryGlideModule, com.bumptech.glide.integration.avif.AvifGlideModule, com.fastimage.svg.SvgModule, com.dylanvann.fastimage.FastImageOkHttpProgressGlideModule]
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@d11/react-native-fast-image/android/src/main/java/com/dylanvann/fastimage/FastImageViewWithUrl.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :lottie-react-native:compileDebugJavaWithJavac
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':app:compileDebugJavaWithJavac'.
-> Compilation failed; see the compiler error output for details.
+Execution failed for task ':app:processDebugGoogleServices'.
+> No matching client found for package name 'com.dawai.pharmacy' in /home/runner/work/dawai-mobile/dawai-mobile/android/app/google-services.json
 
 * Try:
-> Run with --info option to get more log output.
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
 > Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
 
-BUILD FAILED in 3m 18s
-337 actionable tasks: 337 executed
+BUILD FAILED in 3m 8s
+62 actionable tasks: 62 executed
