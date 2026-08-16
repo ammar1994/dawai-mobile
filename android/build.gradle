@@ -13,9 +13,9 @@ buildscript {
     }
     dependencies {
         classpath("com.android.tools.build:gradle:8.6.1")
-        classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
         classpath("com.google.gms:google-services:4.4.2")
+        // react-native-gradle-plugin يأتي عبر includeBuild في settings.gradle (RN 0.76+)
     }
 }
 
