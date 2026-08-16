@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        buildToolsVersion = "35.0.0"
+        buildToolsVersion = "34.0.0"
         minSdkVersion    = 24
         compileSdkVersion = 35
         targetSdkVersion = 35
@@ -20,21 +20,4 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
-
-// Force Material 1.12.0 across ALL subprojects to fix:
-// android:attr/editTextBackgroundMode not found (removed from API 35)
-subprojects {
-    configurations.all {
-        resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-            if (details.requested.group == "com.google.android.material"
-                    && details.requested.name == "material") {
-                details.useVersion "1.12.0"
-            }
-            if (details.requested.group == "androidx.appcompat"
-                    && details.requested.name == "appcompat") {
-                details.useVersion "1.7.0"
-            }
-        }
-    }
-}
 
