@@ -1,5 +1,3 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Fix: android:attr/editTextBackgroundMode not found with compileSdk 35 -->
-    <attr name="editTextBackgroundMode" format="integer" />
 </resources>
