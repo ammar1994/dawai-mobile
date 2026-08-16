@@ -2,15 +2,17 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
-// Apply google-services only if real config exists
-if (file("google-services.json").exists() &&
-    new groovy.json.JsonSlurper().parse(file("google-services.json"))
-        .project_info.project_number != "000000000000") {
-    apply plugin: "com.google.gms.google-services"
+// Google Services: فقط عند وجود ملف حقيقي
+def gsFile = file("google-services.json")
+if (gsFile.exists()) {
+    def gsJson = new groovy.json.JsonSlurper().parse(gsFile)
+    if (gsJson.project_info.project_number != "000000000000") {
+        apply plugin: "com.google.gms.google-services"
+    }
 }
 
 react {
-    // React Native autolinking
+    // autolinking يتولى كل شيء تلقائياً — لا تعدّل
 }
 
 android {
@@ -25,6 +27,7 @@ android {
         targetSdk      rootProject.ext.targetSdkVersion
         versionCode    1
         versionName    "1.0.0"
+        vectorDrawables.useSupportLibrary = true
     }
 
     signingConfigs {
@@ -34,6 +37,14 @@ android {
             keyAlias       "androiddebugkey"
             keyPassword   "android"
         }
+        release {
+            if (project.hasProperty("DAWAI_UPLOAD_STORE_FILE")) {
+                storeFile      file(DAWAI_UPLOAD_STORE_FILE)
+                storePassword  DAWAI_UPLOAD_STORE_PASSWORD
+                keyAlias       DAWAI_UPLOAD_KEY_ALIAS
+                keyPassword    DAWAI_UPLOAD_KEY_PASSWORD
+            }
+        }
     }
 
     buildTypes {
@@ -41,6 +52,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
+            signingConfig signingConfigs.release
             minifyEnabled       true
             shrinkResources     true
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
@@ -48,43 +60,21 @@ android {
     }
 }
 
-configurations.all {
-    resolutionStrategy {
-        force 'androidx.appcompat:appcompat:1.6.1'
-        force 'androidx.appcompat:appcompat-resources:1.6.1'
-        force 'androidx.core:core:1.12.0'
-        force 'androidx.core:core-ktx:1.12.0'
-    }
-}
-
 dependencies {
+    // React Native core — autolinking يضيف المكتبات الأخرى تلقائياً
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
 
+    // Firebase BOM
     implementation platform("com.google.firebase:firebase-bom:33.7.0")
     implementation "com.google.firebase:firebase-messaging"
     implementation "com.google.firebase:firebase-analytics"
 
+    // Google Maps
     implementation "com.google.android.gms:play-services-maps:18.2.0"
     implementation "com.google.android.gms:play-services-location:21.2.0"
-
-    implementation project(':d11_react-native-fast-image')
-    implementation project(':notifee_react-native')
-    implementation project(':react-native-community_datetimepicker')
-    implementation project(':react-native-firebase_app')
-    implementation project(':react-native-firebase_messaging')
-    implementation project(':lottie-react-native')
-    implementation project(':react-native-bootsplash')
-    implementation project(':react-native-gesture-handler')
-    implementation project(':react-native-image-picker')
-    implementation project(':react-native-linear-gradient')
-    implementation project(':react-native-maps')
-    implementation project(':react-native-mmkv')
-    implementation project(':react-native-permissions')
-    implementation project(':react-native-safe-area-context')
-    implementation project(':react-native-screens')
-    implementation project(':react-native-vector-icons')
 }
 
+// react-native-vector-icons fonts
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
