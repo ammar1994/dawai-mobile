@@ -17,4 +17,8 @@ buildscript {
     }
 }
 
-apply plugin: "com.facebook.react.rootproject"
+// Must use plugins{} block (not apply plugin:) — composite-build plugins
+// from pluginManagement.includeBuild are NOT visible to apply plugin: in Gradle 8
+plugins {
+    id("com.facebook.react.rootproject")
+}
