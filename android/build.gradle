@@ -19,5 +19,14 @@ buildscript {
     }
 }
 
-apply plugin: "com.facebook.react.rootproject"
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("$rootDir/../node_modules/react-native/android") }
+        maven { url = uri("$rootDir/../node_modules/@react-native/gradle-plugin") }
+        maven { url = uri("https://www.jitpack.io") }
+    }
+}
 
+apply plugin: "com.facebook.react.rootproject"
