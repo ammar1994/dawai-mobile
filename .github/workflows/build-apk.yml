@@ -29,10 +29,15 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: 🩹 Patch ReactSettingsExtension (substring bug)
+      - name: 🔍 Verify node_modules/@react-native/gradle-plugin
         run: |
-          EXT="node_modules/@react-native/gradle-plugin/settings-plugin/src/main/kotlin/com/facebook/react/ReactSettingsExtension.kt"
-          [ -f "$EXT" ] && sed -i 's/\.readText()\.substring(0, 1024)/.readText().take(1024)/g' "$EXT" && echo "✅ Patched" || echo "⚠️ Not found"
+          if [ -d "node_modules/@react-native/gradle-plugin" ]; then
+            echo "✅ gradle-plugin موجود"
+            ls node_modules/@react-native/gradle-plugin/
+          else
+            echo "❌ gradle-plugin غير موجود"
+            exit 1
+          fi
 
       - name: 🤖 Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -42,16 +47,14 @@ jobs:
       - name: 📱 Install SDK packages
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006" "cmake;3.22.1"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
 
-      - name: 🔥 Override Firebase google-services.json (if secret exists)
+      - name: 🔥 google-services.json
         run: |
           if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
             echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
-            echo "✅ Using secret google-services.json"
-          else
-            echo "✅ Using repo google-services.json (com.dawaiapp)"
           fi
+          echo "✅ google-services.json جاهز"
 
       - name: 🗺️ Maps API Key
         run: |
@@ -75,17 +78,18 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          set -o pipefail
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log
+          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee /tmp/build.log
           echo "✅ BUILD SUCCESS"
           ls -lh app/build/outputs/apk/debug/
 
       - name: ❌ Show errors on failure
         if: failure()
         run: |
-          echo "====== KEY ERRORS ======"
-          grep -E "error:|FAILURE|Caused by:|cannot find|does not exist|Duplicate|No matching" \
-            /tmp/build.log | grep -v "^\s*at " | head -40 || true
+          echo "====== FIRST 100 ERROR LINES ======"
+          grep -n -E "error:|FAILURE|Plugin.*not found|Could not|UnknownPlugin|does not exist" \
+            /tmp/build.log | head -60 || true
+          echo "====== LAST 50 LINES OF LOG ======"
+          tail -50 /tmp/build.log || true
 
       - name: 📤 Upload APK
         if: success()
@@ -101,8 +105,7 @@ jobs:
           echo "## نتيجة البناء" >> $GITHUB_STEP_SUMMARY
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             SIZE=$(du -sh android/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-            echo "✅ **APK جاهز — الحجم: $SIZE**" >> $GITHUB_STEP_SUMMARY
-            echo "📥 حمّل من **Artifacts**" >> $GITHUB_STEP_SUMMARY
+            echo "✅ APK جاهز — الحجم: $SIZE" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ فشل البناء" >> $GITHUB_STEP_SUMMARY
           fi
