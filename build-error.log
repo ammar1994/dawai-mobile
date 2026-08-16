@@ -1,9 +1,8 @@
-Run #735
+Run #734
 FAILURE: Build failed with an exception.
 --- LAST 60 ---
-> Task :lottie-react-native:extractDeepLinksForAarDebug
-> Task :lottie-react-native:generateDebugRFile
-> Task :lottie-react-native:javaPreCompileDebug
+> Task :notifee_react-native:packageDebugResources
+> Task :notifee_react-native:parseDebugLocalResources
 > Task :notifee_react-native:generateDebugRFile
 
 > Task :lottie-react-native:compileDebugKotlin
@@ -19,11 +18,16 @@ w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-
 w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:112:48 Elvis operator (?:) always returns the left operand of non-nullable type ReadableMap
 w: file:///home/runner/work/dawai-mobile/dawai-mobile/node_modules/lottie-react-native/android/src/main/java/com/airbnb/android/react/lottie/LottieAnimationViewPropertyManager.kt:245:58 Elvis operator (?:) always returns the left operand of non-nullable type ReadableMap
 
-> Task :lottie-react-native:extractDebugAnnotations
-> Task :notifee_react-native:extractDebugAnnotations
 > Task :d11_react-native-fast-image:extractDebugAnnotations
+> Task :notifee_react-native:extractDebugAnnotations
 > Task :notifee_react-native:extractDeepLinksForAarDebug
 > Task :notifee_react-native:javaPreCompileDebug
+> Task :lottie-react-native:extractDebugAnnotations
+> Task :lottie-react-native:extractDeepLinksForAarDebug
+> Task :lottie-react-native:javaPreCompileDebug
+> Task :app:checkDebugAarMetadata
+> Task :app:generateDebugResValues
+> Task :app:processDebugGoogleServices FAILED
 
 > Task :notifee_react-native:compileDebugJavaWithJavac
 /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-native/android/src/main/java/io/invertase/notifee/NotifeeApiModule.java:42: warning: [removal] onCatalystInstanceDestroy() in NativeModule has been deprecated and marked for removal
@@ -33,9 +37,7 @@ Note: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@notifee/react-na
 Note: Recompile with -Xlint:deprecation for details.
 1 warning
 
-> Task :app:checkDebugAarMetadata
-> Task :app:generateDebugResValues
-> Task :app:processDebugGoogleServices FAILED
+> Task :lottie-react-native:compileDebugJavaWithJavac
 
 > Task :d11_react-native-fast-image:compileDebugJavaWithJavac
 Note: [2] Wrote GeneratedAppGlideModule with: [com.bumptech.glide.integration.webp.WebpGlideLibraryModule, com.github.penfeizhou.animation.glide.GlideAnimationModule, com.bumptech.glide.integration.okhttp3.OkHttpLibraryGlideModule, com.bumptech.glide.integration.avif.AvifGlideModule, com.fastimage.svg.SvgModule, com.dylanvann.fastimage.FastImageOkHttpProgressGlideModule]
@@ -43,8 +45,6 @@ Note: Some input files use or override a deprecated API.
 Note: Recompile with -Xlint:deprecation for details.
 Note: /home/runner/work/dawai-mobile/dawai-mobile/node_modules/@d11/react-native-fast-image/android/src/main/java/com/dylanvann/fastimage/FastImageViewWithUrl.java uses unchecked or unsafe operations.
 Note: Recompile with -Xlint:unchecked for details.
-
-> Task :lottie-react-native:compileDebugJavaWithJavac
 
 FAILURE: Build failed with an exception.
 
@@ -58,5 +58,5 @@ Execution failed for task ':app:processDebugGoogleServices'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 3m 8s
-62 actionable tasks: 62 executed
+BUILD FAILED in 3m 53s
+67 actionable tasks: 67 executed
