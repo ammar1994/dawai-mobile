@@ -37,7 +37,6 @@ jobs:
             echo "✅ @react-native/gradle-plugin found"
           else
             echo "❌ @react-native/gradle-plugin MISSING"
-            ls node_modules/@react-native/ || true
           fi
 
       - uses: android-actions/setup-android@v3
@@ -73,11 +72,17 @@ jobs:
           else
             {
               echo "Run #${{ github.run_number }}"
-              echo "=== ERROR SUMMARY ==="
-              grep -E "What went wrong|Execution failed|Caused by:|> Task" /tmp/build.log | grep -v "at org\." | head -40
+              echo "=== FAILED TASKS ==="
+              grep "FAILED$" /tmp/build.log || true
               echo ""
-              echo "=== LAST 60 LINES ==="
-              tail -60 /tmp/build.log
+              echo "=== WHAT WENT WRONG ==="
+              grep -A5 "What went wrong" /tmp/build.log | head -30 || true
+              echo ""
+              echo "=== CAUSED BY ==="
+              grep "Caused by:" /tmp/build.log | grep -v "at org\." | head -20 || true
+              echo ""
+              echo "=== LAST 40 LINES ==="
+              tail -40 /tmp/build.log
             } > build-error.log
           fi
           git config user.email "ci@github.com"
@@ -92,7 +97,8 @@ jobs:
           if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
             echo "✅ APK جاهز"
           else
-            grep -E "What went wrong|Caused by:|error:|FAILED" /tmp/build.log | grep -v "at org\." | head -30 || true
+            grep "FAILED$" /tmp/build.log | head -5 || true
+            grep -A3 "What went wrong" /tmp/build.log | head -20 || true
             exit 1
           fi
 
