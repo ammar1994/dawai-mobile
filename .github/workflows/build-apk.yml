@@ -31,14 +31,6 @@ jobs:
       - name: Install deps
         run: npm install --legacy-peer-deps
 
-      - name: Verify gradle plugin installed
-        run: |
-          if [ -d "node_modules/@react-native/gradle-plugin" ]; then
-            echo "✅ @react-native/gradle-plugin found"
-          else
-            echo "❌ @react-native/gradle-plugin MISSING"
-          fi
-
       - uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
@@ -62,7 +54,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee /tmp/build.log || true
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log || true
 
       - name: Save error to repo
         if: always()
@@ -77,16 +69,20 @@ jobs:
               grep "FAILED$" /tmp/build.log || true
 
               echo ""
-              echo "=== JAVA / KOTLIN COMPILER ERRORS ==="
-              grep -E "error: |\.java:[0-9]+: error|\.kt:[0-9]+: error|^e: " /tmp/build.log | head -40 || true
+              echo "=== CMAKE FULL LOG ==="
+              find android/app/.cxx -name "cmake_server_log.txt" 2>/dev/null | while read f; do
+                echo "--- $f ---"
+                cat "$f"
+              done || true
+              find android/app/.cxx -name "*.txt" -path "*/arm64-v8a/*" 2>/dev/null | while read f; do
+                echo "--- $f ---"
+                cat "$f"
+              done || true
+              find android/app/.cxx -name "build_output.txt" 2>/dev/null | xargs cat 2>/dev/null || true
 
               echo ""
-              echo "=== AUTOLINK SUBPROJECTS INCLUDED ==="
-              grep -i "includeBuild\|:react-native\|:lottie\|:notifee\|subproject\|autolinkLibraries\|autolinkLibrariesFromCommand\|react_native_config" /tmp/build.log | head -30 || true
-
-              echo ""
-              echo "=== REACT NATIVE CONFIG COMMAND ==="
-              grep -i "react-native config\|rn-config\|autolinkLibraries" /tmp/build.log | head -20 || true
+              echo "=== CMAKE CONFIGURE ERROR ==="
+              find android/app/.cxx -name "*.log" 2>/dev/null | xargs cat 2>/dev/null | head -100 || true
 
               echo ""
               echo "=== WHAT WENT WRONG ==="
