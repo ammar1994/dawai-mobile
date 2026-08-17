@@ -1,4 +1,4 @@
-Run #794
+Run #796
 === FAILED TASKS ===
 > Task :app:compileDebugJavaWithJavac FAILED
 
@@ -31,6 +31,28 @@ Run #794
 /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:97: error: cannot find symbol
 /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:98: error: cannot find symbol
 /home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:99: error: cannot find symbol
+
+=== AUTOLINK DEBUG ===
+> Task :app:generateAutolinkingNewArchitectureFiles
+> Task :app:generateAutolinkingPackageList
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:14: error: package com.dylanvann.fastimage does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:16: error: package io.invertase.notifee does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:18: error: package com.reactcommunity.rndatetimepicker does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:20: error: package com.airbnb.android.react.lottie does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:22: error: package com.zoontek.rnbootsplash does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:24: error: package com.swmansion.gesturehandler does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:26: error: package com.imagepicker does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:28: error: package com.BV.LinearGradient does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:30: error: package com.rnmaps.maps does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:32: error: package com.mrousavy.mmkv does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:34: error: package com.zoontek.rnpermissions does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:36: error: package com.th3rdwave.safeareacontext does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:38: error: package com.swmansion.rnscreens does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:40: error: package com.oblador.vectoricons does not exist
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:86: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:87: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:88: error: cannot find symbol
+/home/runner/work/dawai-mobile/dawai-mobile/android/app/build/generated/autolinking/src/main/java/com/facebook/react/PackageList.java:89: error: cannot find symbol
 
 === WHAT WENT WRONG ===
 * What went wrong:
@@ -82,5 +104,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
 
 
-BUILD FAILED in 3m 11s
-153 actionable tasks: 153 executed
+BUILD FAILED in 3m 23s
+77 actionable tasks: 77 executed
