@@ -39,27 +39,6 @@ jobs:
             echo "❌ @react-native/gradle-plugin MISSING"
           fi
 
-      - name: Debug autolinking
-        run: |
-          echo "=== react-native config (android deps) ==="
-          node node_modules/@react-native-community/cli/build/bin.js config 2>/tmp/rn-config-err.txt 1>/tmp/rn-config.json || true
-          echo "--- stderr ---"
-          cat /tmp/rn-config-err.txt | head -20 || true
-          echo "--- android packages found ---"
-          node -e "
-            const fs = require('fs');
-            try {
-              const d = JSON.parse(fs.readFileSync('/tmp/rn-config.json','utf8'));
-              const deps = d.dependencies || {};
-              const names = Object.keys(deps);
-              console.log('Total deps:', names.length);
-              names.forEach(n => {
-                const a = (deps[n].platforms || {}).android;
-                console.log(a ? '✅' : '⬜', n);
-              });
-            } catch(e) { console.log('PARSE ERROR:', e.message); }
-          " || true
-
       - uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
@@ -83,7 +62,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log || true
+          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee /tmp/build.log || true
 
       - name: Save error to repo
         if: always()
@@ -102,8 +81,12 @@ jobs:
               grep -E "error: |\.java:[0-9]+: error|\.kt:[0-9]+: error|^e: " /tmp/build.log | head -40 || true
 
               echo ""
-              echo "=== AUTOLINK DEBUG ==="
-              grep -i "autolink\|react-native config\|project include" /tmp/build.log | head -20 || true
+              echo "=== AUTOLINK SUBPROJECTS INCLUDED ==="
+              grep -i "includeBuild\|:react-native\|:lottie\|:notifee\|subproject\|autolinkLibraries\|autolinkLibrariesFromCommand\|react_native_config" /tmp/build.log | head -30 || true
+
+              echo ""
+              echo "=== REACT NATIVE CONFIG COMMAND ==="
+              grep -i "react-native config\|rn-config\|autolinkLibraries" /tmp/build.log | head -20 || true
 
               echo ""
               echo "=== WHAT WENT WRONG ==="
