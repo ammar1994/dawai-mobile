@@ -46,13 +46,7 @@ jobs:
       - name: Install SDK
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
-
-      - name: Install CMake 3.28
-        run: |
-          sdkmanager "cmake;3.28.3"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls $ANDROID_HOME/cmake/
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;26.3.11579264"
 
       - name: Setup files
         run: |
