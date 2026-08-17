@@ -39,6 +39,27 @@ jobs:
             echo "❌ @react-native/gradle-plugin MISSING"
           fi
 
+      - name: Debug autolinking
+        run: |
+          echo "=== react-native config output (android projects) ==="
+          node node_modules/@react-native-community/cli/build/bin.js config 2>&1 | \
+            python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    deps = d.get('dependencies', {})
+    print(f'Found {len(deps)} dependencies')
+    for name, info in deps.items():
+        android = info.get('platforms', {}).get('android')
+        if android:
+            print(f'  ✅ {name} -> {android.get(\"sourceDir\", \"?\")}')
+        else:
+            print(f'  ⬜ {name} -> no android')
+except Exception as e:
+    print(f'PARSE ERROR: {e}')
+    sys.stdin.seek(0)
+" 2>&1 || echo "react-native config FAILED"
+
       - uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
@@ -79,6 +100,10 @@ jobs:
               echo ""
               echo "=== JAVA / KOTLIN COMPILER ERRORS ==="
               grep -E "error: |\.java:[0-9]+: error|\.kt:[0-9]+: error|^e: " /tmp/build.log | head -40 || true
+
+              echo ""
+              echo "=== AUTOLINK SUBPROJECTS ==="
+              grep -i "autolink\|includeBuild\|includeProject\|react-native config" /tmp/build.log | head -20 || true
 
               echo ""
               echo "=== WHAT WENT WRONG ==="
