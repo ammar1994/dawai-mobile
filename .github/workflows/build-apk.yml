@@ -31,14 +31,28 @@ jobs:
       - name: Install deps
         run: npm install --legacy-peer-deps
 
+      - name: Verify gradle plugin installed
+        run: |
+          if [ -d "node_modules/@react-native/gradle-plugin" ]; then
+            echo "✅ @react-native/gradle-plugin found"
+          else
+            echo "❌ @react-native/gradle-plugin MISSING"
+          fi
+
       - uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
 
-      - name: Install SDK
+      - name: Install SDK + NDK + CMake
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;26.3.11579264"
+          sdkmanager \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.1.12297006" \
+            "cmake;3.31.6"
+          echo "✅ CMake: $($ANDROID_HOME/cmake/3.31.6/bin/cmake --version | head -1)"
+          echo "✅ NDK: $(ls $ANDROID_HOME/ndk/)"
 
       - name: Setup files
         run: |
@@ -69,24 +83,16 @@ jobs:
               grep "FAILED$" /tmp/build.log || true
 
               echo ""
-              echo "=== CMAKE FULL LOG ==="
-              find android/app/.cxx -name "cmake_server_log.txt" 2>/dev/null | while read f; do
-                echo "--- $f ---"
-                cat "$f"
-              done || true
-              find android/app/.cxx -name "*.txt" -path "*/arm64-v8a/*" 2>/dev/null | while read f; do
-                echo "--- $f ---"
-                cat "$f"
-              done || true
-              find android/app/.cxx -name "build_output.txt" 2>/dev/null | xargs cat 2>/dev/null || true
+              echo "=== JAVA / KOTLIN COMPILER ERRORS ==="
+              grep -E "error: |\.java:[0-9]+: error|\.kt:[0-9]+: error|^e: " /tmp/build.log | head -40 || true
 
               echo ""
-              echo "=== CMAKE CONFIGURE ERROR ==="
-              find android/app/.cxx -name "*.log" 2>/dev/null | xargs cat 2>/dev/null | head -100 || true
+              echo "=== CMAKE ERRORS ==="
+              grep -E "CMake Error|CMake error|\[CXX[0-9]+\]|ninja: error|ld: error|undefined reference" /tmp/build.log | head -40 || true
 
               echo ""
               echo "=== WHAT WENT WRONG ==="
-              grep -A5 "What went wrong" /tmp/build.log | head -30 || true
+              grep -A 10 "What went wrong" /tmp/build.log | head -50 || true
 
               echo ""
               echo "=== CAUSED BY ==="
@@ -110,7 +116,7 @@ jobs:
             echo "✅ APK جاهز"
           else
             grep "FAILED$" /tmp/build.log | head -5 || true
-            grep -A3 "What went wrong" /tmp/build.log | head -20 || true
+            grep -A5 "What went wrong" /tmp/build.log | head -20 || true
             exit 1
           fi
 
