@@ -5,7 +5,8 @@ plugins {
 }
 
 react {
-    // autolinking يتولى كل شيء تلقائياً
+    // Required: adds all autolinked native libraries to the build classpath
+    autolinkLibrariesWithApp()
 }
 
 android {
@@ -21,14 +22,6 @@ android {
         versionCode    1
         versionName    "1.0.0"
         vectorDrawables.useSupportLibrary = true
-    }
-
-    // cmake 3.22.1 incompatible with NDK r26+ prefab integration
-    // Ubuntu 24.04 (github actions) ships cmake 3.28.3 via apt
-    externalNativeBuild {
-        cmake {
-            version "3.28.3"
-        }
     }
 
     signingConfigs {
@@ -62,7 +55,7 @@ android {
 }
 
 dependencies {
-    // React Native core — autolinking يضيف المكتبات الأخرى تلقائياً
+    // React Native core — autolinkLibrariesWithApp() adds native libs above
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
