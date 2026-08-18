@@ -1,4 +1,4 @@
-name: DAWAI EAS Build
+name: 🏗️ Build DAWAI APK
 
 on:
   workflow_dispatch:
@@ -10,81 +10,129 @@ permissions:
 
 jobs:
   build:
-    name: EAS Build APK
+    name: Build Debug APK
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Install deps
         run: npm install --legacy-peer-deps
 
-      - name: Install EAS CLI
-        run: npm install -g eas-cli@latest
+      - uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
 
-      - name: Check EAS login and build
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Install SDK + NDK + CMake
         run: |
-          echo "=== EAS whoami ===" 2>&1 | tee -a /tmp/eas.log
-          eas whoami 2>&1 | tee -a /tmp/eas.log || true
-          echo "=== EAS Build ===" 2>&1 | tee -a /tmp/eas.log
-          eas build --platform android --profile preview --non-interactive --wait --message "Build #${{ github.run_number }}" 2>&1 | tee -a /tmp/eas.log
-          echo "EXIT_CODE=${PIPESTATUS[0]}" | tee -a /tmp/eas.log
-        continue-on-error: true
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.1.12297006" \
+            "cmake;3.31.6"
 
-      - name: Get APK URL
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Setup files
         run: |
-          eas build:list --platform android --limit 1 --non-interactive --json 2>/dev/null > /tmp/eas-builds.json || echo "[]" > /tmp/eas-builds.json
-          APK_URL=$(python3 -c "import json; builds=json.load(open('/tmp/eas-builds.json')); print(builds[0].get('artifacts',{}).get('buildUrl','') if builds else '')" 2>/dev/null || echo "")
-          echo "APK_URL=$APK_URL" >> $GITHUB_ENV
-        continue-on-error: true
+          KEY="${{ secrets.MAPS_API_KEY }}"
+          [ -z "$KEY" ] && KEY="AIzaSyDummy_key"
+          sed -i "s/YOUR_MAPS_API_KEY/$KEY/g" android/app/src/main/AndroidManifest.xml
+          keytool -genkeypair -v -keystore android/app/debug.keystore \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android -dname "CN=Debug,O=Android,C=US"
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
 
-      - name: Upload to GitHub Release
-        if: env.APK_URL != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build APK
+        working-directory: android
         run: |
-          curl -L -o dawai-v${{ github.run_number }}.apk "${{ env.APK_URL }}"
-          OLD_ID=$(curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/tags/latest-build" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" || echo "")
-          if [ -n "$OLD_ID" ] && [ "$OLD_ID" != "None" ]; then
-            curl -s -X DELETE -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/$OLD_ID" || true
-            curl -s -X DELETE -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/latest-build" || true
-            sleep 2
-          fi
-          RELEASE=$(curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/json" "https://api.github.com/repos/${{ github.repository }}/releases" -d "{\"tag_name\":\"latest-build\",\"name\":\"DAWAI Build #${{ github.run_number }}\",\"prerelease\":true}")
-          UPLOAD_URL=$(echo "$RELEASE" | python3 -c "import sys,json; print(json.load(sys.stdin)['upload_url'].split('{')[0])")
-          curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/vnd.android.package-archive" --data-binary @"dawai-v${{ github.run_number }}.apk" "${UPLOAD_URL}?name=dawai-v${{ github.run_number }}.apk"
-          echo "APK_UPLOADED=true" >> $GITHUB_ENV
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log || true
 
-      - name: Save build result
+      - name: Save error to repo
         if: always()
         run: |
-          {
-            if [ -n "${{ env.APK_URL }}" ]; then
-              echo "SUCCESS Build #${{ github.run_number }}"
-              echo "APK: ${{ env.APK_URL }}"
-            else
-              echo "FAILED Build #${{ github.run_number }}"
-            fi
-            echo ""
-            echo "=== EAS LOG ==="
-            cat /tmp/eas.log 2>/dev/null || echo "لا يوجد log"
-          } > build-error.log
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            echo "✅ BUILD SUCCESS — Run #${{ github.run_number }}" > build-error.log
+          else
+            {
+              echo "Run #${{ github.run_number }}"
+              echo "=== FAILED TASKS ==="
+              grep "FAILED$" /tmp/build.log || true
+              echo ""
+              echo "=== JAVA / KOTLIN COMPILER ERRORS ==="
+              grep -E "error: |\.java:[0-9]+: error|\.kt:[0-9]+: error|^e: " /tmp/build.log | head -40 || true
+              echo ""
+              echo "=== WHAT WENT WRONG ==="
+              grep -A 10 "What went wrong" /tmp/build.log | head -50 || true
+              echo ""
+              echo "=== LAST 40 LINES ==="
+              tail -40 /tmp/build.log
+            } > build-error.log
+          fi
           git config user.email "ci@github.com"
           git config user.name "GitHub Actions"
           git pull --rebase origin main || true
           git add build-error.log
           git diff --cached --quiet || git commit -m "ci: build result #${{ github.run_number }} [ci skip]"
           git push origin main || true
+
+      - name: Check result
+        run: |
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            echo "✅ APK جاهز"
+          else
+            grep "FAILED$" /tmp/build.log | head -5 || true
+            exit 1
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: DAWAI-debug-v${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: Release على GitHub
+        if: success()
+        run: |
+          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+
+          OLD_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/latest-debug" | \
+            python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true)
+
+          if [ -n "$OLD_ID" ] && [ "$OLD_ID" != "None" ]; then
+            curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$OLD_ID" || true
+            curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/latest-debug" || true
+          fi
+
+          RELEASE=$(curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" \
+            -d "{\"tag_name\":\"latest-debug\",\"name\":\"DAWAI Debug — Build #${{ github.run_number }}\",\"body\":\"آخر نسخة\",\"prerelease\":true}")
+
+          UPLOAD_URL=$(echo "$RELEASE" | python3 -c "import sys,json; print(json.load(sys.stdin)['upload_url'].split('{')[0])")
+
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @"$APK_PATH" \
+            "${UPLOAD_URL}?name=dawai-debug-v${{ github.run_number }}.apk"
+
+          echo "✅ APK رُفع على GitHub Releases"
