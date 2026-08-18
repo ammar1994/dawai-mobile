@@ -1,4 +1,21 @@
 {
-  "name": "DawaiApp",
-  "displayName": "دوائي"
+  "expo": {
+    "name": "دوائي",
+    "slug": "dawai-mobile",
+    "version": "1.0.0",
+    "owner": "awmmar1994",
+    "platforms": ["android"],
+    "android": {
+      "package": "com.dawaiapp"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/dawai-mobile",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
+  }
 }
