@@ -35,7 +35,7 @@ jobs:
         run: |
           eas build \
             --platform android \
-            --profile production \
+            --profile preview \
             --non-interactive \
             --no-wait \
             --message "Build #${{ github.run_number }} — ${{ github.event.head_commit.message }}"
