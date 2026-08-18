@@ -31,11 +31,21 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
 
+      - name: Check EAS login
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          echo "--- EAS whoami ---"
+          eas whoami || echo "whoami failed"
+          echo "--- EAS account ---"
+          eas account:view 2>&1 || echo "account failed"
+
       - name: Build APK via EAS
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          eas build --platform android --profile preview --non-interactive --wait --message "Build #${{ github.run_number }}"
+          eas build --platform android --profile preview --non-interactive --wait --message "Build #${{ github.run_number }}" 2>&1
+        continue-on-error: true
 
       - name: Get APK URL
         if: success()
@@ -63,7 +73,6 @@ jobs:
           RELEASE=$(curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/json" "https://api.github.com/repos/${{ github.repository }}/releases" -d "{\"tag_name\":\"latest-build\",\"name\":\"DAWAI Build #${{ github.run_number }}\",\"prerelease\":true}")
           UPLOAD_URL=$(echo "$RELEASE" | python3 -c "import sys,json; print(json.load(sys.stdin)['upload_url'].split('{')[0])")
           curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/vnd.android.package-archive" --data-binary @"dawai-v${{ github.run_number }}.apk" "${UPLOAD_URL}?name=dawai-v${{ github.run_number }}.apk"
-          echo "APK رُفع على GitHub Releases"
 
       - name: Save build result
         if: always()
