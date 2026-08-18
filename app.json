@@ -9,13 +9,18 @@
       "package": "com.dawaiapp"
     },
     "updates": {
-      "url": "https://u.expo.dev/dawai-mobile",
+      "url": "https://u.expo.dev/e009c151-6e07-4dca-be5d-7dd222bf838f",
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0
     },
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e009c151-6e07-4dca-be5d-7dd222bf838f"
+      }
     }
   }
 }
