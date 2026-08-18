@@ -31,35 +31,28 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli@latest
 
-      - name: Check EAS login
+      - name: Check EAS login and build
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          echo "--- EAS whoami ---"
-          eas whoami || echo "whoami failed"
-          echo "--- EAS account ---"
-          eas account:view 2>&1 || echo "account failed"
-
-      - name: Build APK via EAS
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          eas build --platform android --profile preview --non-interactive --wait --message "Build #${{ github.run_number }}" 2>&1
+          echo "=== EAS whoami ===" 2>&1 | tee -a /tmp/eas.log
+          eas whoami 2>&1 | tee -a /tmp/eas.log || true
+          echo "=== EAS Build ===" 2>&1 | tee -a /tmp/eas.log
+          eas build --platform android --profile preview --non-interactive --wait --message "Build #${{ github.run_number }}" 2>&1 | tee -a /tmp/eas.log
+          echo "EXIT_CODE=${PIPESTATUS[0]}" | tee -a /tmp/eas.log
         continue-on-error: true
 
       - name: Get APK URL
-        if: success()
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          eas build:list --platform android --limit 1 --non-interactive --json > /tmp/eas-builds.json
-          cat /tmp/eas-builds.json
-          APK_URL=$(python3 -c "import json; builds=json.load(open('/tmp/eas-builds.json')); print(builds[0].get('artifacts',{}).get('buildUrl','') if builds else '')")
+          eas build:list --platform android --limit 1 --non-interactive --json 2>/dev/null > /tmp/eas-builds.json || echo "[]" > /tmp/eas-builds.json
+          APK_URL=$(python3 -c "import json; builds=json.load(open('/tmp/eas-builds.json')); print(builds[0].get('artifacts',{}).get('buildUrl','') if builds else '')" 2>/dev/null || echo "")
           echo "APK_URL=$APK_URL" >> $GITHUB_ENV
-          echo "APK URL: $APK_URL"
+        continue-on-error: true
 
       - name: Upload to GitHub Release
-        if: success() && env.APK_URL != ''
+        if: env.APK_URL != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -73,15 +66,22 @@ jobs:
           RELEASE=$(curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/json" "https://api.github.com/repos/${{ github.repository }}/releases" -d "{\"tag_name\":\"latest-build\",\"name\":\"DAWAI Build #${{ github.run_number }}\",\"prerelease\":true}")
           UPLOAD_URL=$(echo "$RELEASE" | python3 -c "import sys,json; print(json.load(sys.stdin)['upload_url'].split('{')[0])")
           curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/vnd.android.package-archive" --data-binary @"dawai-v${{ github.run_number }}.apk" "${UPLOAD_URL}?name=dawai-v${{ github.run_number }}.apk"
+          echo "APK_UPLOADED=true" >> $GITHUB_ENV
 
       - name: Save build result
         if: always()
         run: |
-          if [ -n "${{ env.APK_URL }}" ]; then
-            printf "SUCCESS Build #${{ github.run_number }}\nAPK: ${{ env.APK_URL }}\n" > build-error.log
-          else
-            printf "FAILED Build #${{ github.run_number }}\n" > build-error.log
-          fi
+          {
+            if [ -n "${{ env.APK_URL }}" ]; then
+              echo "SUCCESS Build #${{ github.run_number }}"
+              echo "APK: ${{ env.APK_URL }}"
+            else
+              echo "FAILED Build #${{ github.run_number }}"
+            fi
+            echo ""
+            echo "=== EAS LOG ==="
+            cat /tmp/eas.log 2>/dev/null || echo "لا يوجد log"
+          } > build-error.log
           git config user.email "ci@github.com"
           git config user.name "GitHub Actions"
           git pull --rebase origin main || true
