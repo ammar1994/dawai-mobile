@@ -31,14 +31,6 @@ jobs:
       - name: Install deps
         run: npm install --legacy-peer-deps
 
-      - name: Verify gradle plugin installed
-        run: |
-          if [ -d "node_modules/@react-native/gradle-plugin" ]; then
-            echo "✅ @react-native/gradle-plugin found"
-          else
-            echo "❌ @react-native/gradle-plugin MISSING"
-          fi
-
       - uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
@@ -51,8 +43,6 @@ jobs:
             "build-tools;35.0.0" \
             "ndk;27.1.12297006" \
             "cmake;3.31.6"
-          echo "✅ CMake: $($ANDROID_HOME/cmake/3.31.6/bin/cmake --version | head -1)"
-          echo "✅ NDK: $(ls $ANDROID_HOME/ndk/)"
 
       - name: Setup files
         run: |
@@ -84,14 +74,8 @@ jobs:
               echo "=== JAVA / KOTLIN COMPILER ERRORS ==="
               grep -E "error: |\.java:[0-9]+: error|\.kt:[0-9]+: error|^e: " /tmp/build.log | head -40 || true
               echo ""
-              echo "=== CMAKE ERRORS ==="
-              grep -E "CMake Error|CMake error|\[CXX[0-9]+\]|ninja: error|ld: error|undefined reference" /tmp/build.log | head -40 || true
-              echo ""
               echo "=== WHAT WENT WRONG ==="
               grep -A 10 "What went wrong" /tmp/build.log | head -50 || true
-              echo ""
-              echo "=== CAUSED BY ==="
-              grep "Caused by:" /tmp/build.log | grep -v "at org\." | head -20 || true
               echo ""
               echo "=== LAST 40 LINES ==="
               tail -40 /tmp/build.log
@@ -110,7 +94,6 @@ jobs:
             echo "✅ APK جاهز"
           else
             grep "FAILED$" /tmp/build.log | head -5 || true
-            grep -A5 "What went wrong" /tmp/build.log | head -20 || true
             exit 1
           fi
 
@@ -126,39 +109,37 @@ jobs:
         if: success()
         run: |
           APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
-          TAG="v0.0.${{ github.run_number }}"
-          
-          # احذف الـ release القديم إن وجد
+
           OLD_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/releases/tags/latest-debug" | \
             python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true)
-          
+
           if [ -n "$OLD_ID" ] && [ "$OLD_ID" != "None" ]; then
             curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/${{ github.repository }}/releases/$OLD_ID" || true
             curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/latest-debug" || true
           fi
-          
-          # أنشئ release جديد
+
           RELEASE=$(curl -s -X POST \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
             "https://api.github.com/repos/${{ github.repository }}/releases" \
-            -d "{
-              \"tag_name\": \"latest-debug\",
-              \"name\": \"DAWAI Debug — Build #${{ github.run_number }}\",
-              \"body\": \"آخر نسخة debug تلقائية\",
-              \"prerelease\": true
-            }")
-          
+            -d "{\"tag_name\":\"latest-debug\",\"name\":\"DAWAI Debug — Build #${{ github.run_number }}\",\"body\":\"آخر نسخة\",\"prerelease\":true}")
+
           UPLOAD_URL=$(echo "$RELEASE" | python3 -c "import sys,json; print(json.load(sys.stdin)['upload_url'].split('{')[0])")
-          
-          # ارفع الـ APK
+
           curl -s -X POST \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Content-Type: application/vnd.android.package-archive" \
             --data-binary @"$APK_PATH" \
             "${UPLOAD_URL}?name=dawai-debug-v${{ github.run_number }}.apk"
-          
-          echo "✅ APK متاح على: https://github.com/${{ github.repository }}/releases/tag/latest-debug"
+
+      - name: EAS Update — نشر تحديث OTA
+        if: success()
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npm install -g eas-cli --silent
+          eas update --auto --non-interactive --platform android \
+            --message "Build #${{ github.run_number }}" || true
