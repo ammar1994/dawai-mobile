@@ -1,0 +1,39 @@
+workflows:
+  android-debug:
+    name: DAWAI Android Debug
+    max_build_duration: 60
+    environment:
+      node: 20.0.0
+      java: 17
+    scripts:
+      - name: Install dependencies
+        script: npm install --legacy-peer-deps
+
+      - name: Set up local.properties
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+
+      - name: Setup debug keystore
+        script: |
+          keytool -genkeypair -v \
+            -keystore android/app/debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Debug,O=Android,C=US"
+
+      - name: Build Android APK
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+    artifacts:
+      - android/app/build/outputs/apk/debug/app-debug.apk
+
+    publishing:
+      email:
+        recipients:
+          - ammar1994@gmail.com
+        notify:
+          success: true
+          failure: true
