@@ -58,7 +58,11 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log || true
+          # Pre-generate codegen before building
+          cd .. && node node_modules/react-native/scripts/generate-codegen-artifacts.js             --path . --outputPath android/app/build/generated/codegen 2>/dev/null || true
+          cd android
+          # Build with explicit CMake path
+          ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006           CMAKE_HOME=$ANDROID_HOME/cmake/3.31.6           ./gradlew assembleDebug --no-daemon --stacktrace             -Pandroid.overridePathCheck=true             2>&1 | tee /tmp/build.log || true
 
       - name: Save error to repo
         if: always()
