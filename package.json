@@ -1,4 +1,3 @@
-Removed: ['expo-modules-core', 'expo-updates']
 {
   "name": "DawaiApp",
   "version": "1.0.0",
