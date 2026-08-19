@@ -1,0 +1,110 @@
+name: 📱 EAS Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: EAS Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm install --legacy-peer-deps
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build APK via EAS
+        run: eas build --platform android --profile preview --non-interactive --no-wait
+
+      - name: Wait and download APK
+        run: |
+          echo "Waiting for EAS build to complete..."
+          sleep 30
+          
+          # Get latest build ID
+          BUILD_INFO=$(eas build:list --platform android --limit 1 --json --non-interactive 2>/dev/null || echo "[]")
+          BUILD_ID=$(echo "$BUILD_INFO" | python3 -c "
+          import sys, json
+          builds = json.load(sys.stdin)
+          if builds:
+              b = builds[0]
+              print(b.get('id',''))
+          " 2>/dev/null || echo "")
+          
+          echo "Build ID: $BUILD_ID"
+          
+          # Wait for completion (max 40 min)
+          for i in $(seq 1 40); do
+            STATUS=$(eas build:view $BUILD_ID --json 2>/dev/null | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          print(d.get('status',''))
+          " 2>/dev/null || echo "UNKNOWN")
+            echo "Attempt $i — Status: $STATUS"
+            
+            if [ "$STATUS" = "FINISHED" ]; then
+              APK_URL=$(eas build:view $BUILD_ID --json 2>/dev/null | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          print(d.get('artifacts',{}).get('buildUrl',''))
+          " 2>/dev/null || echo "")
+              echo "APK URL: $APK_URL"
+              curl -L "$APK_URL" -o dawai-eas.apk
+              echo "✅ Downloaded APK"
+              break
+            elif [ "$STATUS" = "ERRORED" ] || [ "$STATUS" = "CANCELLED" ]; then
+              echo "❌ Build failed with status: $STATUS"
+              exit 1
+            fi
+            sleep 60
+          done
+
+      - name: Upload to GitHub Releases
+        if: success()
+        run: |
+          if [ ! -f dawai-eas.apk ]; then
+            echo "No APK found"
+            exit 1
+          fi
+
+          OLD_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/latest-debug" | \
+            python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true)
+
+          if [ -n "$OLD_ID" ] && [ "$OLD_ID" != "None" ]; then
+            curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$OLD_ID" || true
+            curl -s -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/latest-debug" || true
+            sleep 3
+          fi
+
+          RELEASE=$(curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" \
+            -d "{\"tag_name\":\"latest-debug\",\"name\":\"DAWAI EAS — Build #${{ github.run_number }}\",\"body\":\"بُني عبر EAS Build\",\"prerelease\":true}")
+
+          UPLOAD_URL=$(echo "$RELEASE" | python3 -c "import sys,json; print(json.load(sys.stdin)['upload_url'].split('{')[0])")
+
+          curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @dawai-eas.apk \
+            "${UPLOAD_URL}?name=dawai-eas-v${{ github.run_number }}.apk"
+
+          echo "✅ APK رُفع على GitHub Releases"
