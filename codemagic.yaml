@@ -2,10 +2,24 @@ workflows:
   android-debug:
     name: DAWAI Android Debug
     max_build_duration: 60
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+      cancel_previous_builds: true
     environment:
       node: 20.0.0
       java: 17
+    cache:
+      cache_paths:
+        - $CM_BUILD_DIR/node_modules
     scripts:
+      - name: Validate package.json
+        script: |
+          python3 -c "import json; json.load(open('package.json')); print('✅ package.json صحيح')"
+
       - name: Install dependencies
         script: npm install --legacy-peer-deps
 
@@ -25,7 +39,7 @@ workflows:
         script: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1
 
     artifacts:
       - android/app/build/outputs/apk/debug/app-debug.apk
