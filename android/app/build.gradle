@@ -5,7 +5,6 @@ plugins {
 }
 
 react {
-    // Required: adds all autolinked native libraries to the build classpath
     autolinkLibrariesWithApp()
 }
 
@@ -24,7 +23,19 @@ android {
         vectorDrawables.useSupportLibrary = true
 
         ndk {
-            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+            abiFilters "armeabi-v7a", "arm64-v8a"
+        }
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=c++_shared"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
         }
     }
 
@@ -35,14 +46,6 @@ android {
             keyAlias       "androiddebugkey"
             keyPassword   "android"
         }
-        release {
-            if (project.hasProperty("DAWAI_UPLOAD_STORE_FILE")) {
-                storeFile      file(DAWAI_UPLOAD_STORE_FILE)
-                storePassword  DAWAI_UPLOAD_STORE_PASSWORD
-                keyAlias       DAWAI_UPLOAD_KEY_ALIAS
-                keyPassword    DAWAI_UPLOAD_KEY_PASSWORD
-            }
-        }
     }
 
     buildTypes {
@@ -50,10 +53,8 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig signingConfigs.release
-            minifyEnabled       true
-            shrinkResources     true
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            signingConfig signingConfigs.debug
+            minifyEnabled false
         }
     }
 
@@ -71,15 +72,11 @@ android {
 }
 
 dependencies {
-    // React Native core — autolinkLibrariesWithApp() adds native libs above
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
-
-    // Google Maps
     implementation "com.google.android.gms:play-services-maps:18.2.0"
     implementation "com.google.android.gms:play-services-location:21.2.0"
 }
 
-// react-native-vector-icons fonts
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
