@@ -59,7 +59,7 @@ android {
 
     packaging {
         jniLibs {
-            useLegacyPackaging = false
+            useLegacyPackaging = true
             pickFirsts += [
                 'lib/x86/libc++_shared.so',
                 'lib/x86_64/libc++_shared.so',
