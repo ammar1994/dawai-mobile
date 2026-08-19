@@ -31,16 +31,18 @@ jobs:
       - name: Install deps
         run: npm install --legacy-peer-deps
 
-      - name: Install Android SDK + NDK + CMake
+      - name: Setup Android SDK + NDK + CMake
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK and CMake
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager \
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platforms;android-35" \
             "build-tools;35.0.0" \
             "ndk;27.1.12297006" \
-            "cmake;3.31.6"
-          echo "NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> $GITHUB_ENV
-          echo "CMAKE_PATH=$ANDROID_HOME/cmake/3.31.6/bin" >> $GITHUB_ENV
+            "cmake;3.31.6" \
+            --sdk_root=$ANDROID_HOME
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> $GITHUB_ENV
           echo "$ANDROID_HOME/cmake/3.31.6/bin" >> $GITHUB_PATH
 
       - name: Setup files
@@ -62,15 +64,11 @@ jobs:
 
       - name: Build APK
         working-directory: android
-        env:
-          ANDROID_NDK_HOME: ${{ env.NDK_HOME }}
-          NDK_HOME: ${{ env.NDK_HOME }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug \
             --no-daemon \
             --stacktrace \
-            --info \
             2>&1 | tee /tmp/build.log || true
 
       - name: Save error to repo
@@ -83,13 +81,13 @@ jobs:
             {
               echo "Run #${{ github.run_number }}"
               echo "=== FAILED TASKS ==="
-              grep "FAILED$" /tmp/build.log || true
+              grep "FAILED$" /tmp/build.log 2>/dev/null || true
               echo ""
               echo "=== WHAT WENT WRONG ==="
-              grep -A 10 "What went wrong" /tmp/build.log | head -50 || true
+              grep -A 10 "What went wrong" /tmp/build.log 2>/dev/null | head -50 || true
               echo ""
               echo "=== LAST 50 LINES ==="
-              tail -50 /tmp/build.log
+              tail -50 /tmp/build.log 2>/dev/null || echo "No build log"
             } > build-error.log
           fi
           git config user.email "ci@github.com"
@@ -106,7 +104,7 @@ jobs:
             ls -lh android/app/build/outputs/apk/debug/
           else
             echo "❌ فشل البناء"
-            grep "FAILED$" /tmp/build.log | head -5 || true
+            grep "FAILED$" /tmp/build.log 2>/dev/null | head -5 || true
             exit 1
           fi
 
